@@ -1,0 +1,32 @@
+services:
+  # =========================================================================
+  # Gym App Backend Service (FastAPI + Uvicorn)
+  # =========================================================================
+  - type: web
+    name: gym-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /ping
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MONGODB_DATABASE
+        value: gym_management
+      - key: MONGODB_URI
+        sync: false # Enter your MongoDB Atlas connection string in Render Dashboard
+      - key: FRONTEND_ORIGIN
+        value: "http://localhost:3000" # Update with your frontend URL once deployed (e.g., https://your-frontend.vercel.app)
+      - key: JWT_SECRET
+        generateValue: true # Render automatically generates a secure 32-character secret
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: "lax"
+      - key: ADMIN_USERNAME
+        value: "coach"
+      - key: ADMIN_PASSWORD
+        value: "Coach@Gym2026!"
