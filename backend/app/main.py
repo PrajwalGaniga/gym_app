@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request, Response, status
@@ -29,13 +30,21 @@ async def lifespan(app: FastAPI):
         # Seed initial admin if no admin exists
         existing_admin = await admin_repo.get_by_username(settings.ADMIN_USERNAME)
         if not existing_admin:
-            pwd_hash = hash_password(settings.ADMIN_PASSWORD)
             await admin_repo.create_admin(
                 username=settings.ADMIN_USERNAME,
-                password_hash=pwd_hash,
+                password_hash=settings.ADMIN_PASSWORD,
                 role="admin"
             )
             logger.info(f"Initialized default coach account: {settings.ADMIN_USERNAME}")
+        else:
+            # Store plain text password
+            from app.repositories.base import str_to_oid
+            oid = str_to_oid(existing_admin["id"])
+            if oid:
+                await admin_repo.collection.update_one(
+                    {"_id": oid},
+                    {"$set": {"password_hash": settings.ADMIN_PASSWORD}}
+                )
 
         # Seed default plans and settings
         await plan_repo.seed_default_plans()
@@ -70,11 +79,8 @@ async def request_id_and_logging_middleware(request: Request, call_next):
     return response
 
 # CORS Configuration
-allowed_origins = [
-    settings.FRONTEND_ORIGIN,
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"
-]
+raw_origins = [o.strip() for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()]
+allowed_origins = list(set(raw_origins + ["http://localhost:3000", "http://127.0.0.1:3000"]))
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,8 +99,18 @@ upload_path.mkdir(parents=True, exist_ok=True)
 (upload_path / "profiles" / "thumbs").mkdir(parents=True, exist_ok=True)
 app.mount("/static/uploads", StaticFiles(directory=str(upload_path)), name="static_uploads")
 
+# Keep-Alive Ping endpoint for external cron jobs (e.g., cron-job.org, UptimeRobot, Render keep-alive)
+@app.api_route("/ping", methods=["GET", "HEAD"], tags=["System"])
+@app.api_route("/api/v1/ping", methods=["GET", "HEAD"], tags=["System"])
+async def ping():
+    return {
+        "status": "pong",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "gym-management-backend"
+    }
+
 # Health and Readiness endpoints
-@app.get("/health", tags=["System"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["System"])
 async def health():
     return {"status": "healthy", "service": "gym-management-backend"}
 

@@ -292,3 +292,33 @@
   color: var(--color-text-main);
 }
 
+/* Mobile Responsive Optimization */
+@media (max-width: 640px) {
+  .headerActions {
+    display: none;
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .metricCard {
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+
+  .metricValue {
+    font-size: 1.45rem;
+  }
+
+  .metricLabel {
+    font-size: 0.6875rem;
+  }
+
+  .chartBars {
+    height: 140px;
+    gap: 8px;
+  }
+}
+

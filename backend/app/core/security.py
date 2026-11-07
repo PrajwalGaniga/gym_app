@@ -5,15 +5,18 @@ from typing import Optional, Dict, Any
 from app.core.config import settings
 
 def hash_password(password: str) -> str:
-    pwd_bytes = password.encode("utf-8")
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
+    # No hashing required - plain text password
+    return password
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, stored_password: str) -> bool:
+    if not plain_password or not stored_password:
+        return False
+    if plain_password == stored_password:
+        return True
     try:
         return bcrypt.checkpw(
             plain_password.encode("utf-8"),
-            hashed_password.encode("utf-8")
+            stored_password.encode("utf-8")
         )
     except Exception:
         return False

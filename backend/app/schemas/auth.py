@@ -3,8 +3,10 @@ from typing import Optional
 from datetime import datetime
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=4)
+    phone: Optional[str] = None
+    pin: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

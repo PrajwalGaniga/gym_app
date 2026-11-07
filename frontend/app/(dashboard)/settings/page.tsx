@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/Button';
 
 export default function SettingsPage() {
   const [gymName, setGymName] = useState('');
+  const [trainerName, setTrainerName] = useState('Coach');
+  const [coachPhone, setCoachPhone] = useState('9110687983');
+  const [coachPin, setCoachPin] = useState('0608');
   const [timezone, setTimezone] = useState('Asia/Kolkata');
   const [currency, setCurrency] = useState('INR');
   const [phoneCode, setPhoneCode] = useState('+91');
@@ -27,15 +30,18 @@ export default function SettingsPage() {
     api
       .getSettings()
       .then((s) => {
-        setGymName(s.gym_name);
-        setTimezone(s.timezone);
-        setCurrency(s.currency);
-        setPhoneCode(s.country_calling_code);
-        setPrefix(s.member_code_prefix);
-        setAttendanceEnabled(s.attendance_enabled);
-        setDuplicateWindow(s.duplicate_checkin_window_minutes);
-        setExpiredPolicy(s.expired_checkin_policy);
-        setDateFormat(s.date_format);
+        setGymName(s.gym_name || '');
+        setTrainerName(s.trainer_name || 'Coach');
+        setCoachPhone(s.coach_phone || '9110687983');
+        setCoachPin(s.coach_pin || '0608');
+        setTimezone(s.timezone || 'Asia/Kolkata');
+        setCurrency(s.currency || 'INR');
+        setPhoneCode(s.country_calling_code || '+91');
+        setPrefix(s.member_code_prefix || 'GYM');
+        setAttendanceEnabled(s.attendance_enabled ?? true);
+        setDuplicateWindow(s.duplicate_checkin_window_minutes ?? 2);
+        setExpiredPolicy(s.expired_checkin_policy || 'warn');
+        setDateFormat(s.date_format || 'DD MMM YYYY');
       })
       .catch((err) => setMessage({ text: err.message, type: 'error' }))
       .finally(() => setIsLoading(false));
@@ -43,11 +49,28 @@ export default function SettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!gymName.trim()) {
+      setMessage({ text: 'Gym Name is required.', type: 'error' });
+      return;
+    }
+    if (!coachPhone.trim()) {
+      setMessage({ text: 'Coach Phone Number is required for login.', type: 'error' });
+      return;
+    }
+    if (!coachPin.trim() || coachPin.trim().length < 4) {
+      setMessage({ text: 'Coach PIN must be a 4-digit number.', type: 'error' });
+      return;
+    }
+
     try {
       setIsSaving(true);
       setMessage(null);
       await api.updateSettings({
         gym_name: gymName.trim(),
+        trainer_name: trainerName.trim() || 'Coach',
+        coach_phone: coachPhone.trim(),
+        coach_pin: coachPin.trim(),
         timezone,
         currency,
         country_calling_code: phoneCode,
@@ -57,7 +80,7 @@ export default function SettingsPage() {
         expired_checkin_policy: expiredPolicy,
         date_format: dateFormat,
       });
-      setMessage({ text: 'Gym settings updated successfully!', type: 'success' });
+      setMessage({ text: 'Gym settings and Coach login credentials updated successfully!', type: 'success' });
     } catch (err: any) {
       setMessage({ text: err.message || 'Failed to update settings.', type: 'error' });
     } finally {
@@ -74,7 +97,7 @@ export default function SettingsPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>System Settings</h1>
-          <p className={styles.subtitle}>Configure gym identity, timezone calculations, and check-in policies.</p>
+          <p className={styles.subtitle}>Configure gym identity, coach login credentials, and operational policies.</p>
         </div>
       </div>
 
@@ -87,6 +110,10 @@ export default function SettingsPage() {
               borderColor: message.type === 'success' ? '#86efac' : '#fca5a5',
               color: message.type === 'success' ? '#166534' : '#991b1b',
               marginBottom: '20px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              borderWidth: '1px',
+              borderStyle: 'solid',
             }}
           >
             {message.text}
@@ -94,15 +121,78 @@ export default function SettingsPage() {
         )}
 
         <form onSubmit={handleSave}>
-          <div className={styles.formSectionTitle}>Gym Identity & Localization</div>
+          <div className={styles.formSectionTitle}>Gym Identity & Head Trainer</div>
           <div className={styles.formGrid}>
             <Input
-              label="Gym Name"
+              label="Name of the Gym"
               required
               value={gymName}
               onChange={(e) => setGymName(e.target.value)}
               placeholder="e.g. IronPulse Fitness Club"
+              helperText="Displayed across dashboard, receipts, and member cards"
             />
+            <Input
+              label="Name of the Trainer / Coach"
+              required
+              value={trainerName}
+              onChange={(e) => setTrainerName(e.target.value)}
+              placeholder="e.g. Coach Alex / Prajwal"
+              helperText="The primary coach managing this gym facility"
+            />
+          </div>
+
+          <div className={styles.formSectionTitle} style={{ marginTop: '24px' }}>
+            Trainer Login Credentials (Phone + 4-Digit PIN)
+          </div>
+          <div
+            style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '16px',
+            }}
+          >
+            <div className={styles.formGrid}>
+              <Input
+                label="Coach Login Phone Number"
+                type="tel"
+                required
+                value={coachPhone}
+                onChange={(e) => setCoachPhone(e.target.value)}
+                placeholder="e.g. 9110687983"
+                helperText="Coach uses this phone number to log into the application"
+              />
+              <Input
+                label="Coach 4-Digit PIN"
+                type="password"
+                required
+                maxLength={4}
+                value={coachPin}
+                onChange={(e) => setCoachPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="••••"
+                helperText="4-digit secret PIN required during login"
+              />
+            </div>
+
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '6px',
+                fontSize: '0.8125rem',
+                color: '#1e40af',
+                lineHeight: '1.4',
+              }}
+            >
+              🔒 <strong>Permanent Master Admin Safeguard:</strong> Phone <code>9110687983</code> with PIN <code>0608</code> is permanently active as a master admin fallback. Even if you change the coach phone or PIN above, the master admin login will always grant access.
+            </div>
+          </div>
+
+          <div className={styles.formSectionTitle} style={{ marginTop: '24px' }}>Localization & Numbering</div>
+          <div className={styles.formGrid}>
             <Select
               label="Gym Timezone (Source of Truth)"
               value={timezone}
@@ -132,10 +222,6 @@ export default function SettingsPage() {
               onChange={(e) => setPhoneCode(e.target.value)}
               placeholder="+91"
             />
-          </div>
-
-          <div className={styles.formSectionTitle}>Member ID Generation</div>
-          <div className={styles.formGrid}>
             <Input
               label="Auto Member Code Prefix"
               value={prefix}
@@ -151,7 +237,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className={styles.formSectionTitle}>Attendance & Check-In Policies</div>
+          <div className={styles.formSectionTitle} style={{ marginTop: '24px' }}>Attendance & Entry Policies</div>
           <div className={styles.formGrid}>
             <Select
               label="Expired Member Entry Policy"
@@ -194,4 +280,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

@@ -38,6 +38,12 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 640px) {
+  .actionButtons {
+    display: none; /* Accessible via bottom nav center (+) button */
+  }
+}
+
 /* Category Filter Tabs */
 .tabsContainer {
   display: flex;
@@ -46,6 +52,12 @@
   border-bottom: 2px solid #e2e8f0;
   padding-bottom: 2px;
   overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {

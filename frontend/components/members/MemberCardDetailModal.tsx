@@ -107,6 +107,9 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        {/* Mobile Bottom Sheet Grab Handle */}
+        <div className={styles.sheetHandle} />
+
         {/* Header */}
         <div className={styles.modalHeader}>
           <div className={styles.memberHeaderLeft}>

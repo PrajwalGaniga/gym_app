@@ -5,6 +5,9 @@ from datetime import datetime
 class SettingsResponse(BaseModel):
     id: str
     gym_name: str
+    trainer_name: Optional[str] = "Coach"
+    coach_phone: Optional[str] = "9110687983"
+    coach_pin: Optional[str] = "0608"
     logo_url: Optional[str] = None
     timezone: str
     currency: str
@@ -18,6 +21,9 @@ class SettingsResponse(BaseModel):
 
 class SettingsUpdate(BaseModel):
     gym_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    trainer_name: Optional[str] = Field(default=None, max_length=100)
+    coach_phone: Optional[str] = Field(default=None, max_length=20)
+    coach_pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
     logo_url: Optional[str] = None
     timezone: Optional[str] = None
     currency: Optional[str] = None

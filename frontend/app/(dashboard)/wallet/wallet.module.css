@@ -45,6 +45,12 @@
   border: 1px solid #e2e8f0;
   overflow-x: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filterPills::-webkit-scrollbar {
+  display: none;
 }
 
 .pillBtn {
@@ -284,5 +290,44 @@
   background-color: #f1f5f9;
   color: #334155;
   display: inline-block;
+}
+
+/* Mobile Responsive Optimization */
+@media (max-width: 640px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .kpiCard {
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+
+  .kpiCardHighlight {
+    grid-column: span 2;
+  }
+
+  .kpiValue {
+    font-size: 1.5rem;
+  }
+
+  .methodsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .methodCard {
+    padding: 12px;
+  }
+
+  .chartContainer {
+    height: 140px;
+  }
+
+  .sectionCard {
+    padding: 16px;
+    border-radius: 14px;
+  }
 }
 

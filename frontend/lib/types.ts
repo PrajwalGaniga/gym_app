@@ -162,6 +162,9 @@ export interface DashboardSummary {
 export interface Settings {
   id: string;
   gym_name: string;
+  trainer_name?: string | null;
+  coach_phone?: string | null;
+  coach_pin?: string | null;
   logo_url?: string | null;
   timezone: string;
   currency: string;

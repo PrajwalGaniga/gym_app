@@ -98,47 +98,45 @@ export const MemberCardGrid: React.FC<MemberCardGridProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      {!initialCategory && (
-        <div className={styles.tabsContainer}>
-          <button
-            className={`${styles.tab} ${category === undefined ? styles.tabActive : ''}`}
-            onClick={() => {
-              setCategory(undefined);
-              setPage(1);
-            }}
-          >
-            All Members
-          </button>
-          <button
-            className={`${styles.tab} ${category === 'paid' ? styles.tabActive : ''}`}
-            onClick={() => {
-              setCategory('paid');
-              setPage(1);
-            }}
-          >
-            🟢 Paid
-          </button>
-          <button
-            className={`${styles.tab} ${category === 'expiring_soon' ? styles.tabActive : ''}`}
-            onClick={() => {
-              setCategory('expiring_soon');
-              setPage(1);
-            }}
-          >
-            🟡 Expiring Soon (3 Days Left)
-          </button>
-          <button
-            className={`${styles.tab} ${category === 'expired' ? styles.tabActive : ''}`}
-            onClick={() => {
-              setCategory('expired');
-              setPage(1);
-            }}
-          >
-            🔴 Expired
-          </button>
-        </div>
-      )}
+      {/* Category Filter Tabs - Smooth horizontal scrolling on phone */}
+      <div className={styles.tabsContainer}>
+        <button
+          className={`${styles.tab} ${category === undefined ? styles.tabActive : ''}`}
+          onClick={() => {
+            setCategory(undefined);
+            setPage(1);
+          }}
+        >
+          All Members
+        </button>
+        <button
+          className={`${styles.tab} ${category === 'paid' ? styles.tabActive : ''}`}
+          onClick={() => {
+            setCategory('paid');
+            setPage(1);
+          }}
+        >
+          🟢 Paid
+        </button>
+        <button
+          className={`${styles.tab} ${category === 'expiring_soon' ? styles.tabActive : ''}`}
+          onClick={() => {
+            setCategory('expiring_soon');
+            setPage(1);
+          }}
+        >
+          🟡 Expiring (3 Days)
+        </button>
+        <button
+          className={`${styles.tab} ${category === 'expired' ? styles.tabActive : ''}`}
+          onClick={() => {
+            setCategory('expired');
+            setPage(1);
+          }}
+        >
+          🔴 Expired
+        </button>
+      </div>
 
       {/* Search and View Controls */}
       <div className={styles.filterBar}>
