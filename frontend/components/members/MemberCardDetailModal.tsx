@@ -20,6 +20,7 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   onClose,
   onRenewed,
 }) => {
+  const [currentMember, setCurrentMember] = useState<Member | null>(member);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
@@ -30,6 +31,7 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   const [renewalMessage, setRenewalMessage] = useState('');
 
   useEffect(() => {
+    setCurrentMember(member);
     if (member) {
       setIsLoadingPayments(true);
       setShowRenewalForm(false);
@@ -51,11 +53,12 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
     }
   }, [member]);
 
-  if (!member) return null;
+  if (!currentMember) return null;
 
-  const badge = getStatusBadgeDetails(member.status);
-  const avatarUrl = member.photo?.thumbnail_url || member.photo?.url;
-  const initials = member.full_name
+  const displayMember = currentMember;
+  const badge = getStatusBadgeDetails(displayMember.status);
+  const avatarUrl = displayMember.photo?.thumbnail_url || displayMember.photo?.url;
+  const initials = displayMember.full_name
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -64,14 +67,18 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
 
   const handleQuickRenew = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanId) return;
+    if (!selectedPlanId || !displayMember) return;
 
     try {
       setIsRenewing(true);
       setRenewalMessage('');
 
-      await api.renewMembership(member.id, {
+      const plan = plans.find((p) => p.id === selectedPlanId);
+      const amount = plan ? plan.price : 500;
+
+      await api.renewMembership(displayMember.id, {
         plan_id: selectedPlanId,
+        payment_amount: amount,
         payment_method: renewMethod,
         payment_date: new Date().toISOString().split('T')[0],
       });
@@ -79,9 +86,13 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
       setRenewalMessage('✅ Membership successfully renewed!');
       setShowRenewalForm(false);
       
-      // Refresh payments
-      const updated = await api.getMemberPayments(member.id, 1, 20);
-      setPayments(updated.items || []);
+      // Refresh member and payments in real-time
+      const [updatedMember, updatedPayments] = await Promise.all([
+        api.getMemberDetail(displayMember.id),
+        api.getMemberPayments(displayMember.id, 1, 20),
+      ]);
+      setCurrentMember(updatedMember);
+      setPayments(updatedPayments.items || []);
 
       if (onRenewed) {
         onRenewed();
@@ -89,6 +100,9 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
     } catch (err: any) {
       alert(err.message || 'Renewal failed.');
     } finally {
+      setIsRenewing(false);
+    }
+  };
       setIsRenewing(false);
     }
   };
@@ -100,19 +114,19 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
         <div className={styles.modalHeader}>
           <div className={styles.memberHeaderLeft}>
             {avatarUrl ? (
-              <img src={avatarUrl} alt={member.full_name} className={styles.headerPhoto} />
+              <img src={avatarUrl} alt={displayMember.full_name} className={styles.headerPhoto} />
             ) : (
               <div className={styles.headerPhotoPlaceholder}>{initials}</div>
             )}
             <div>
-              <h2 className={styles.memberName}>{member.full_name}</h2>
+              <h2 className={styles.memberName}>{displayMember.full_name}</h2>
               <div className={styles.memberBadges}>
-                <span className={styles.codeBadge}>{member.member_code}</span>
-                {member.gender && <span className={styles.genderBadge}>{member.gender}</span>}
+                <span className={styles.codeBadge}>{displayMember.member_code}</span>
+                {displayMember.gender && <span className={styles.genderBadge}>{displayMember.gender}</span>}
                 <Badge variant={badge.variant as any}>{badge.label}</Badge>
               </div>
-              <a href={`tel:${member.phone}`} className={styles.phoneLink}>
-                📞 {member.phone}
+              <a href={`tel:${displayMember.phone}`} className={styles.phoneLink}>
+                📞 {displayMember.phone}
               </a>
             </div>
           </div>
@@ -134,8 +148,8 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
             <div className={styles.metricCard}>
               <span className={styles.metricLabel}>Joining Date</span>
               <span className={styles.metricValue}>
-                {member.joining_date_known && member.joining_date
-                  ? formatDate(member.joining_date)
+                {displayMember.joining_date_known && displayMember.joining_date
+                  ? formatDate(displayMember.joining_date)
                   : 'Legacy (Unknown)'}
               </span>
             </div>
@@ -143,21 +157,21 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
             <div className={styles.metricCard}>
               <span className={styles.metricLabel}>Last Paid Date</span>
               <span className={styles.metricValue}>
-                {member.last_payment_date ? formatDate(member.last_payment_date) : 'None recorded'}
+                {displayMember.last_payment_date ? formatDate(displayMember.last_payment_date) : 'None recorded'}
               </span>
             </div>
 
             <div className={styles.metricCard}>
               <span className={styles.metricLabel}>Months Completed</span>
               <span className={styles.metricValue}>
-                {member.total_months_completed ?? 0} {member.total_months_completed === 1 ? 'Month' : 'Months'}
+                {displayMember.total_months_completed ?? 0} {displayMember.total_months_completed === 1 ? 'Month' : 'Months'}
               </span>
             </div>
 
             <div className={`${styles.metricCard} ${styles.metricCardRevenue}`}>
               <span className={styles.metricLabel} style={{ color: '#065f46' }}>Total Revenue</span>
               <span className={`${styles.metricValue} ${styles.metricValueRevenue}`}>
-                ₹{(member.lifetime_revenue || 0).toLocaleString()}
+                ₹{(displayMember.lifetime_revenue || 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -167,21 +181,21 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
             <div className={styles.sectionTitle}>
               <span>🏋️ Current Membership</span>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                {member.remaining_days > 0
-                  ? `🟢 ${member.remaining_days} days left`
-                  : member.remaining_days === 0
+                {displayMember.remaining_days > 0
+                  ? `🟢 ${displayMember.remaining_days} days left`
+                  : displayMember.remaining_days === 0
                   ? '🟡 Expires Today'
-                  : `🔴 Expired ${Math.abs(member.remaining_days)}d ago`}
+                  : `🔴 Expired ${Math.abs(displayMember.remaining_days)}d ago`}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: '#475569' }}>
               <div>
-                <strong>Plan:</strong> {member.current_membership?.plan_name || 'No Active Plan'}
+                <strong>Plan:</strong> {displayMember.current_membership?.plan_name || 'No Active Plan'}
               </div>
               <div>
                 <strong>Valid Till:</strong>{' '}
-                {member.current_membership?.expiry_date
-                  ? formatDate(member.current_membership.expiry_date)
+                {displayMember.current_membership?.expiry_date
+                  ? formatDate(displayMember.current_membership.expiry_date)
                   : '—'}
               </div>
             </div>
@@ -302,7 +316,7 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
 
         {/* Footer */}
         <div className={styles.modalFooter}>
-          <Link href={`/members/${member.id}`}>
+          <Link href={`/members/${displayMember.id}`}>
             <Button variant="secondary" size="sm">
               View Full Profile Page →
             </Button>

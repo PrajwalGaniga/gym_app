@@ -18,7 +18,7 @@ class MembershipResponse(BaseModel):
 
 class RenewalRequest(BaseModel):
     plan_id: str
-    payment_amount: float = Field(..., ge=0)
+    payment_amount: Optional[float] = Field(default=None, ge=0)
     payment_date: date
     payment_method: str = Field(..., pattern="^(Cash|UPI|Card|Bank Transfer|Other)$")
     custom_start_date: Optional[date] = None

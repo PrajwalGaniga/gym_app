@@ -131,12 +131,13 @@ class MembershipService:
         membership_id = m_doc["id"]
 
         # 2. Append new payment record
+        charge_amount = data.payment_amount if data.payment_amount is not None else float(plan["price"])
         p_doc = await payment_repo.create_payment({
             "member_id": member["id"],
             "member_code_snapshot": member["member_code"],
             "member_name_snapshot": member["full_name"],
             "membership_id": membership_id,
-            "amount": data.payment_amount,
+            "amount": charge_amount,
             "currency": settings.get("currency", "INR"),
             "payment_date": data.payment_date,
             "payment_method": data.payment_method,
