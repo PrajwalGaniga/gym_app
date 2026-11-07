@@ -30,3 +30,10 @@ services:
         value: "coach"
       - key: ADMIN_PASSWORD
         value: "Coach@Gym2026!"
+      - key: CLOUDINARY_CLOUD_NAME
+        value: "dqoxbzl98"
+      - key: CLOUDINARY_API_KEY
+        value: "941326782766181"
+      - key: CLOUDINARY_API_SECRET
+        sync: false # Enter your Cloudinary API secret in the Render Dashboard
+
