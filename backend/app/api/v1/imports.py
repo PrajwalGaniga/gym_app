@@ -42,3 +42,4 @@ async def commit_csv_import(
     if not data.rows:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No rows provided for import.")
     return await legacy_import_service.commit_import(data.rows, admin["id"])
+

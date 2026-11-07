@@ -115,3 +115,4 @@ class AttendanceService:
         )
 
 attendance_service = AttendanceService()
+

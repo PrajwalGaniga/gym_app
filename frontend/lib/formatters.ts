@@ -69,3 +69,4 @@ export function getStatusBadgeDetails(status: string) {
       return { label: status, variant: 'neutral' };
   }
 }
+

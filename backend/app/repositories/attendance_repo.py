@@ -78,3 +78,4 @@ class AttendanceRepository:
         return items
 
 attendance_repo = AttendanceRepository()
+

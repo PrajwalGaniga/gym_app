@@ -115,3 +115,4 @@ app.include_router(api_router)
 
 # Also alias endpoints to /api/... for compatibility
 app.include_router(api_router, prefix="")
+

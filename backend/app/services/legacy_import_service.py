@@ -247,3 +247,4 @@ class LegacyImportService:
         )
 
 legacy_import_service = LegacyImportService()
+

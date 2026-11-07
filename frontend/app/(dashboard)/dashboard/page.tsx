@@ -69,14 +69,14 @@ export default function DashboardPage() {
         </div>
 
         <div className={styles.headerActions}>
-          <Link href="/attendance">
+          <Link href="/wallet">
             <Button variant="secondary" size="md">
-              ⏱️ Check-In Desk
+              💰 Gym Wallet
             </Button>
           </Link>
           <Link href="/members/legacy">
             <Button variant="secondary" size="md">
-              ➕ Add Legacy Member
+              ➕ Add Existing Member
             </Button>
           </Link>
           <Link href="/members/new">
@@ -159,16 +159,18 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <div className={`${styles.metricCard} ${styles.metricRevenue}`}>
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Month Collections</span>
-            <span className={styles.metricIcon}>💰</span>
+        <Link href="/wallet" style={{ textDecoration: 'none' }}>
+          <div className={`${styles.metricCard} ${styles.metricRevenue}`}>
+            <div className={styles.metricHeader}>
+              <span className={styles.metricLabel}>Month Collections</span>
+              <span className={styles.metricIcon}>💰</span>
+            </div>
+            <div className={styles.metricValue} style={{ color: '#2563eb' }}>
+              {formatCurrency(data.collections_this_month)}
+            </div>
+            <div className={styles.metricFootnote}>{data.new_registrations_this_month} new joins this month</div>
           </div>
-          <div className={styles.metricValue} style={{ color: '#2563eb' }}>
-            {formatCurrency(data.collections_this_month)}
-          </div>
-          <div className={styles.metricFootnote}>{data.new_registrations_this_month} new joins this month</div>
-        </div>
+        </Link>
 
         <div className={styles.metricCard}>
           <div className={styles.metricHeader}>
@@ -314,3 +316,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

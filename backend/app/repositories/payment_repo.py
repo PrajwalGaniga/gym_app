@@ -163,4 +163,51 @@ class PaymentRepository:
                 })
         return result[-num_months:]
 
+    async def get_members_payment_summaries(self) -> Dict[str, Dict[str, Any]]:
+        """Aggregates lifetime revenue and last payment date for all members."""
+        pipeline = [
+            {"$match": {"status": "completed"}},
+            {"$sort": {"payment_date": 1}},
+            {
+                "$group": {
+                    "_id": "$member_id",
+                    "lifetime_revenue": {"$sum": "$amount"},
+                    "last_payment_date": {"$last": "$payment_date"},
+                    "payment_count": {"$sum": 1}
+                }
+            }
+        ]
+        cursor = await self.collection.aggregate(pipeline)
+        summary = {}
+        async for doc in cursor:
+            summary[str(doc["_id"])] = {
+                "lifetime_revenue": float(doc.get("lifetime_revenue", 0.0)),
+                "last_payment_date": doc.get("last_payment_date"),
+                "payment_count": int(doc.get("payment_count", 0))
+            }
+        return summary
+
+    async def get_single_member_payment_summary(self, member_id: str) -> Dict[str, Any]:
+        """Calculates lifetime revenue and last payment date for a single member."""
+        pipeline = [
+            {"$match": {"member_id": str(member_id), "status": "completed"}},
+            {"$sort": {"payment_date": 1}},
+            {
+                "$group": {
+                    "_id": "$member_id",
+                    "lifetime_revenue": {"$sum": "$amount"},
+                    "last_payment_date": {"$last": "$payment_date"},
+                    "payment_count": {"$sum": 1}
+                }
+            }
+        ]
+        cursor = await self.collection.aggregate(pipeline)
+        async for doc in cursor:
+            return {
+                "lifetime_revenue": float(doc.get("lifetime_revenue", 0.0)),
+                "last_payment_date": doc.get("last_payment_date"),
+                "payment_count": int(doc.get("payment_count", 0))
+            }
+        return {"lifetime_revenue": 0.0, "last_payment_date": None, "payment_count": 0}
+
 payment_repo = PaymentRepository()

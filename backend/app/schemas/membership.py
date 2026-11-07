@@ -40,3 +40,4 @@ class RenewalPreviewResponse(BaseModel):
 class ExpiryMigrationRequest(BaseModel):
     new_expiry_date: date
     reason: str = Field(..., min_length=3, max_length=500, description="Audit reason for manual expiry migration")
+

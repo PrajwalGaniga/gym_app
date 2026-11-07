@@ -23,3 +23,4 @@ async def update_plan(plan_id: str, data: PlanUpdate, admin: dict = Depends(get_
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
     return updated
+

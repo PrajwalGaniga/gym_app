@@ -39,3 +39,4 @@ async def create_indexes():
     await db.audit_logs.create_index([("entity_type", ASCENDING), ("entity_id", ASCENDING)])
 
     logger.info("MongoDB indexes verified successfully.")
+

@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { MemberTable } from '@/components/members/MemberTable';
+import { MemberCardGrid } from '@/components/members/MemberCardGrid';
 
 export default function ExpiringSoonMembersPage() {
   return (
-    <MemberTable
+    <MemberCardGrid
       initialCategory="expiring_soon"
-      pageTitle="Expiring Soon (0–3 Days)"
-      pageSubtitle="Members with 0, 1, 2, or 3 days remaining before expiration (including expiring today)."
+      pageTitle="🟡 Expiring Soon (3 Days Left)"
+      pageSubtitle="Members with 0 to 3 days remaining before their monthly cycle ends (amber alert border)."
     />
   );
 }
+

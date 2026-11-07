@@ -50,3 +50,4 @@ def test_day_unit_plan():
 
     expiry_30 = calculate_plan_expiry(start, "day", 30)
     assert expiry_30 == date(2026, 1, 30)
+

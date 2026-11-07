@@ -48,6 +48,7 @@ class MemberRepository:
             "full_name": data["full_name"].strip(),
             "phone": data["phone"].strip(),
             "normalized_phone": normalize_phone(data["phone"]),
+            "gender": data.get("gender"),
             "photo": data.get("photo"),
             "joining_date": data.get("joining_date"),
             "joining_date_known": data.get("joining_date_known", True),
@@ -170,3 +171,4 @@ class MemberRepository:
         return items
 
 member_repo = MemberRepository()
+

@@ -21,3 +21,4 @@ class RequestIdFilter(logging.Filter):
 
 logger = logging.getLogger("gym_app")
 logger.addFilter(RequestIdFilter())
+

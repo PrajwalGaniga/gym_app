@@ -40,3 +40,4 @@ class DashboardSummaryResponse(BaseModel):
     recent_payments: List[PaymentResponse]
     expired_checkins_today: List[ExpiredCheckinItem]
     revenue_chart: List[MonthlyRevenuePoint]
+

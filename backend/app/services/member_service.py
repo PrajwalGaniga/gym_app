@@ -50,6 +50,7 @@ class MemberService:
             "member_code": member_code,
             "full_name": data.full_name,
             "phone": data.phone,
+            "gender": data.gender or "Male",
             "photo": photo_obj,
             "joining_date": data.joining_date.strftime("%Y-%m-%d"),
             "joining_date_known": True,
@@ -127,6 +128,7 @@ class MemberService:
             "member_code": member_code,
             "full_name": data.full_name,
             "phone": data.phone,
+            "gender": data.gender,
             "photo": photo_obj,
             "joining_date": joining_date_iso,
             "joining_date_known": data.joining_date_known if data.joining_date else False,
@@ -212,12 +214,26 @@ class MemberService:
 
         joining_d = datetime.strptime(doc["joining_date"], "%Y-%m-%d").date() if doc.get("joining_date") else None
 
+        # Calculate months completed
+        months_completed = 0
+        if joining_d and joining_d <= gym_today:
+            months = (gym_today.year - joining_d.year) * 12 + (gym_today.month - joining_d.month)
+            if gym_today.day < joining_d.day and months > 0:
+                months -= 1
+            months_completed = max(0, months)
+
+        # Payment summary for this member
+        pay_sum = await payment_repo.get_single_member_payment_summary(member_id)
+        last_pay_d = datetime.strptime(pay_sum["last_payment_date"], "%Y-%m-%d").date() if pay_sum.get("last_payment_date") else None
+        lifetime_rev = float(pay_sum.get("lifetime_revenue", 0.0))
+
         return MemberResponse(
             id=doc["id"],
             member_code=doc["member_code"],
             full_name=doc["full_name"],
             phone=doc["phone"],
             normalized_phone=doc.get("normalized_phone", ""),
+            gender=doc.get("gender"),
             photo=doc.get("photo"),
             joining_date=joining_d,
             joining_date_known=doc.get("joining_date_known", True),
@@ -228,7 +244,10 @@ class MemberService:
             updated_at=doc["updated_at"],
             current_membership=membership_snapshot,
             status=status,
-            remaining_days=remaining_days
+            remaining_days=remaining_days,
+            last_payment_date=last_pay_d,
+            total_months_completed=months_completed,
+            lifetime_revenue=lifetime_rev
         )
 
     async def list_members(
@@ -278,6 +297,9 @@ class MemberService:
             page_size=page_size
         )
 
+        # Fetch payment summaries for lifetime revenue & last payment date
+        payment_summaries = await payment_repo.get_members_payment_summaries()
+
         items: List[MemberResponse] = []
         for doc in raw_members:
             mid = doc["id"]
@@ -304,12 +326,28 @@ class MemberService:
                     pass
 
             joining_d = datetime.strptime(doc["joining_date"], "%Y-%m-%d").date() if doc.get("joining_date") else None
+            
+            # Months completed
+            months_completed = 0
+            if joining_d and joining_d <= gym_today:
+                months = (gym_today.year - joining_d.year) * 12 + (gym_today.month - joining_d.month)
+                if gym_today.day < joining_d.day and months > 0:
+                    months -= 1
+                months_completed = max(0, months)
+
+            # Payment summary info
+            p_info = payment_summaries.get(mid, {})
+            last_p_str = p_info.get("last_payment_date")
+            last_p_d = datetime.strptime(last_p_str, "%Y-%m-%d").date() if last_p_str else None
+            lifetime_rev = float(p_info.get("lifetime_revenue", 0.0))
+
             items.append(MemberResponse(
                 id=doc["id"],
                 member_code=doc["member_code"],
                 full_name=doc["full_name"],
                 phone=doc["phone"],
                 normalized_phone=doc.get("normalized_phone", ""),
+                gender=doc.get("gender"),
                 photo=doc.get("photo"),
                 joining_date=joining_d,
                 joining_date_known=doc.get("joining_date_known", True),
@@ -320,7 +358,10 @@ class MemberService:
                 updated_at=doc["updated_at"],
                 current_membership=membership_snapshot,
                 status=status,
-                remaining_days=remaining_days
+                remaining_days=remaining_days,
+                last_payment_date=last_p_d,
+                total_months_completed=months_completed,
+                lifetime_revenue=lifetime_rev
             ))
 
         total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1

@@ -9,56 +9,34 @@ class PlanRepository:
         return db_manager.get_database().plans
 
     async def seed_default_plans(self):
-        count = await self.collection.count_documents({})
-        if count == 0:
-            now = datetime.now(timezone.utc)
-            default_plans = [
-                {
-                    "name": "1 Month Standard",
-                    "duration_unit": "month",
-                    "duration_value": 1,
-                    "price": 1500.0,
-                    "currency": "INR",
-                    "description": "Standard 1 calendar month gym membership",
-                    "is_active": True,
-                    "created_at": now,
-                    "updated_at": now
-                },
-                {
-                    "name": "3 Months Quarterly",
-                    "duration_unit": "month",
-                    "duration_value": 3,
-                    "price": 4000.0,
-                    "currency": "INR",
-                    "description": "3 calendar months quarterly membership plan",
-                    "is_active": True,
-                    "created_at": now,
-                    "updated_at": now
-                },
-                {
-                    "name": "6 Months Half-Yearly",
-                    "duration_unit": "month",
-                    "duration_value": 6,
-                    "price": 7500.0,
-                    "currency": "INR",
-                    "description": "6 calendar months half-yearly membership plan",
-                    "is_active": True,
-                    "created_at": now,
-                    "updated_at": now
-                },
-                {
-                    "name": "12 Months Annual",
-                    "duration_unit": "month",
-                    "duration_value": 12,
-                    "price": 14000.0,
-                    "currency": "INR",
-                    "description": "12 calendar months full annual membership plan",
-                    "is_active": True,
-                    "created_at": now,
-                    "updated_at": now
-                }
-            ]
-            await self.collection.insert_many(default_plans)
+        now = datetime.now(timezone.utc)
+        one_month = await self.collection.find_one({"duration_value": 1, "duration_unit": "month", "price": 500.0})
+        if not one_month:
+            await self.collection.insert_one({
+                "name": "1 Month",
+                "duration_unit": "month",
+                "duration_value": 1,
+                "price": 500.0,
+                "currency": "INR",
+                "description": "Standard 1 month gym membership (₹500/month)",
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now
+            })
+
+        two_months = await self.collection.find_one({"duration_value": 2, "duration_unit": "month", "price": 1000.0})
+        if not two_months:
+            await self.collection.insert_one({
+                "name": "2 Months",
+                "duration_unit": "month",
+                "duration_value": 2,
+                "price": 1000.0,
+                "currency": "INR",
+                "description": "2 months gym membership (₹1,000 for 2 months)",
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now
+            })
 
     async def list_plans(self, active_only: bool = False) -> List[Dict[str, Any]]:
         query = {"is_active": True} if active_only else {}
@@ -95,3 +73,4 @@ class PlanRepository:
         return serialize_doc(res)
 
 plan_repo = PlanRepository()
+

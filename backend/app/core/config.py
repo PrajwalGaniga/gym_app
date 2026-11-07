@@ -45,3 +45,4 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads/profiles"
 
 settings = Settings()
+

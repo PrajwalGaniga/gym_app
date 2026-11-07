@@ -48,3 +48,4 @@ def test_status_expired_long_ago():
     status, remaining = calculate_member_status(expiry, today)
     assert status == "expired"
     assert remaining < 0
+

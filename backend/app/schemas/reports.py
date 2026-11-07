@@ -34,3 +34,28 @@ class AttendanceReportResponse(BaseModel):
     unique_members: int
     expired_checkins_count: int
     daily_breakdown: List[Dict[str, Any]]
+
+class WalletTransactionItem(BaseModel):
+    id: str
+    member_id: str
+    member_code: str
+    member_name: str
+    amount: float
+    payment_date: str
+    payment_method: str
+    status: str
+    record_origin: str = "regular"
+    reference: Optional[str] = None
+    notes: Optional[str] = None
+
+class WalletReportResponse(BaseModel):
+    period: str  # "7d", "15d", "30d", "6m", "1y", "all"
+    start_date: Optional[date] = None
+    end_date: date
+    total_revenue: float
+    total_transactions: int
+    average_ticket: float
+    by_payment_method: List[PaymentMethodSummary]
+    daily_totals: List[Dict[str, Any]]
+    recent_transactions: List[WalletTransactionItem]
+

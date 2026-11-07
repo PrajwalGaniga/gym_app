@@ -56,3 +56,4 @@ async def migrate_expiry_date(
 @router.get("/{member_id}/history")
 async def get_membership_history(member_id: str, admin: dict = Depends(get_current_admin)):
     return await membership_repo.get_all_for_member(member_id)
+

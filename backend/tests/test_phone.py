@@ -15,3 +15,4 @@ def test_phone_validation():
     assert validate_phone("123") is False
     assert validate_phone("") is False
     assert validate_phone("12345678901234567") is False  # > 15 digits
+

@@ -44,3 +44,4 @@ def validate_phone(phone: str) -> bool:
     """Validates whether phone contains a plausible number of digits (min 7, max 15)."""
     digits = re.sub(r"\D", "", phone or "")
     return 7 <= len(digits) <= 15
+

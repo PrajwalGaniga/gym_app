@@ -10,7 +10,8 @@ import {
   DashboardSummary,
   Settings,
   RenewalPreview,
-  LegacyImportPreview
+  LegacyImportPreview,
+  WalletReportResponse
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
@@ -238,6 +239,9 @@ export const api = {
     return request<any>(`/reports/collections?${q.toString()}`);
   },
 
+  getWalletReport: (period = '30d') =>
+    request<WalletReportResponse>(`/reports/wallet?period=${encodeURIComponent(period)}`),
+
   getMembersReport: (startDate?: string, endDate?: string) => {
     const q = new URLSearchParams();
     if (startDate) q.set('start_date', startDate);
@@ -286,3 +290,4 @@ export const api = {
       body: JSON.stringify({ rows }),
     }),
 };
+

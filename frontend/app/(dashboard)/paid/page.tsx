@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { MemberTable } from '@/components/members/MemberTable';
+import { MemberCardGrid } from '@/components/members/MemberCardGrid';
 
 export default function PaidMembersPage() {
   return (
-    <MemberTable
+    <MemberCardGrid
       initialCategory="paid"
-      pageTitle="Paid Members"
-      pageSubtitle="Members with active memberships and more than 3 calendar days of validity remaining."
+      pageTitle="🟢 Paid Members"
+      pageSubtitle="Active gym members within the 30-day membership countdown (solid green border)."
     />
   );
 }
+

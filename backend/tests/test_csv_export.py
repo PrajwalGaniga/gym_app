@@ -21,3 +21,4 @@ def test_generate_csv_response():
     csv_str = generate_csv_response(fields, rows)
     assert "Regular Member,GYM001" in csv_str
     assert "'=cmd|'calc'!A0,'@HACK" in csv_str
+

@@ -24,3 +24,4 @@ def generate_csv_response(fieldnames: List[str], rows: List[Dict[str, Any]]) -> 
         sanitized_row = {k: sanitize_csv_value(row.get(k, "")) for k in fieldnames}
         writer.writerow(sanitized_row)
     return output.getvalue()
+

@@ -17,3 +17,4 @@ class AdminResponse(BaseModel):
     role: str = "admin"
     is_active: bool = True
     last_login_at: Optional[datetime] = None
+

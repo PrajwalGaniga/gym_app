@@ -19,3 +19,4 @@ async def get_today_attendance(
     admin: dict = Depends(get_current_admin)
 ):
     return await attendance_service.get_today_attendance(page=page, page_size=page_size)
+

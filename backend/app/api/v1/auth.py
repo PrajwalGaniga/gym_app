@@ -74,3 +74,4 @@ async def get_me(admin: dict = Depends(get_current_admin)):
         is_active=admin.get("is_active", True),
         last_login_at=admin.get("last_login_at")
     )
+

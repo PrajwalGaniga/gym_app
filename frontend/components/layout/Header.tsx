@@ -140,3 +140,4 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle, admin }) => {
     </header>
   );
 };
+

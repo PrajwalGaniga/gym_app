@@ -71,3 +71,4 @@ def test_renewal_custom_start_date():
     )
     assert new_start == date(2026, 3, 15)
     assert new_expiry == date(2026, 4, 14)
+

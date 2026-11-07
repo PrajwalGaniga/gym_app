@@ -11,7 +11,9 @@ from app.schemas.reports import (
     CollectionsReportResponse,
     PaymentMethodSummary,
     MembersReportResponse,
-    AttendanceReportResponse
+    AttendanceReportResponse,
+    WalletReportResponse,
+    WalletTransactionItem
 )
 
 class ReportService:
@@ -204,5 +206,97 @@ class ReportService:
                 "expired_warning": "YES" if doc.get("is_expired_warning") else "NO"
             })
         return generate_csv_response(fieldnames, rows)
+
+    async def get_wallet_report(self, period: str = "30d") -> WalletReportResponse:
+        settings = await settings_repo.get_settings()
+        gym_today = get_gym_today(settings.get("timezone", "Asia/Kolkata"))
+
+        period = (period or "30d").lower()
+        start_date: Optional[date] = None
+
+        if period == "7d":
+            start_date = gym_today - timedelta(days=7)
+        elif period == "15d":
+            start_date = gym_today - timedelta(days=15)
+        elif period == "30d":
+            start_date = gym_today - timedelta(days=30)
+        elif period == "6m":
+            start_date = gym_today - timedelta(days=180)
+        elif period == "1y":
+            start_date = gym_today - timedelta(days=365)
+        elif period == "all":
+            start_date = None
+        else:
+            # Default to 30d
+            period = "30d"
+            start_date = gym_today - timedelta(days=30)
+
+        query: Dict[str, Any] = {"status": "completed"}
+        if start_date:
+            query["payment_date"] = {
+                "$gte": start_date.strftime("%Y-%m-%d"),
+                "$lte": gym_today.strftime("%Y-%m-%d")
+            }
+
+        total_revenue = 0.0
+        total_transactions = 0
+        method_map: Dict[str, Dict[str, Any]] = {}
+        daily_map: Dict[str, float] = {}
+        recent_txs: List[WalletTransactionItem] = []
+
+        cursor = payment_repo.collection.find(query).sort("payment_date", -1)
+        async for doc in cursor:
+            amt = float(doc.get("amount", 0.0))
+            method = doc.get("payment_method", "Cash")
+            p_date = doc.get("payment_date", "")
+
+            total_revenue += amt
+            total_transactions += 1
+
+            if method not in method_map:
+                method_map[method] = {"amount": 0.0, "count": 0}
+            method_map[method]["amount"] += amt
+            method_map[method]["count"] += 1
+
+            daily_map[p_date] = daily_map.get(p_date, 0.0) + amt
+
+            if len(recent_txs) < 100:
+                recent_txs.append(WalletTransactionItem(
+                    id=str(doc["_id"]),
+                    member_id=str(doc.get("member_id", "")),
+                    member_code=str(doc.get("member_code_snapshot", "")),
+                    member_name=str(doc.get("member_name_snapshot", "")),
+                    amount=amt,
+                    payment_date=p_date,
+                    payment_method=method,
+                    status=doc.get("status", "completed"),
+                    record_origin=doc.get("record_origin", "regular"),
+                    reference=doc.get("reference"),
+                    notes=doc.get("notes")
+                ))
+
+        by_method = [
+            PaymentMethodSummary(method=m, amount=v["amount"], count=v["count"])
+            for m, v in sorted(method_map.items())
+        ]
+
+        daily_totals = [
+            {"date": d, "amount": amt}
+            for d, amt in sorted(daily_map.items())
+        ]
+
+        avg_ticket = total_revenue / total_transactions if total_transactions > 0 else 0.0
+
+        return WalletReportResponse(
+            period=period,
+            start_date=start_date,
+            end_date=gym_today,
+            total_revenue=total_revenue,
+            total_transactions=total_transactions,
+            average_ticket=round(avg_ticket, 2),
+            by_payment_method=by_method,
+            daily_totals=daily_totals,
+            recent_transactions=recent_txs
+        )
 
 report_service = ReportService()

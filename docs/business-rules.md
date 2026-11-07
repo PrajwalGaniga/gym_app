@@ -57,3 +57,4 @@ Renewals append a new membership period and payment record without mutating hist
 2. **Expired Member Policy**:
    - `warn` (default): Warns coach prominently that membership is expired, but allows recording check-in.
    - `block`: Denies entry unless the coach explicitly authorizes an override.
+

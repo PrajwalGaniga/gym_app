@@ -27,3 +27,4 @@ class SettingsUpdate(BaseModel):
     duplicate_checkin_window_minutes: Optional[int] = Field(default=None, ge=1, le=60)
     expired_checkin_policy: Optional[str] = Field(default=None, pattern="^(warn|block)$")
     date_format: Optional[str] = None
+

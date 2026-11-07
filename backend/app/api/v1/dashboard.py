@@ -8,3 +8,4 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/summary", response_model=DashboardSummaryResponse)
 async def get_dashboard_summary(admin: dict = Depends(get_current_admin)):
     return await dashboard_service.get_dashboard_summary()
+

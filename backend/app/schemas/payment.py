@@ -39,3 +39,4 @@ class PaginatedPaymentsResponse(BaseModel):
     page_size: int
     total_pages: int
     total_amount_collected: float
+

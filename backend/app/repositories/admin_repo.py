@@ -44,3 +44,4 @@ class AdminRepository:
             )
 
 admin_repo = AdminRepository()
+

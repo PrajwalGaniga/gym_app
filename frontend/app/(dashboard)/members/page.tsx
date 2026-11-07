@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { MemberTable } from '@/components/members/MemberTable';
+import { MemberCardGrid } from '@/components/members/MemberCardGrid';
 
 export default function AllMembersPage() {
   return (
-    <MemberTable
+    <MemberCardGrid
       pageTitle="Members Directory"
-      pageSubtitle="Complete roster of registered gym athletes, statuses, and profiles."
+      pageSubtitle="Interactive athlete cards with live payment statuses, history, and revenue tracking."
     />
   );
 }
+

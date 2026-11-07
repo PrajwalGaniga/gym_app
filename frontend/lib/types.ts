@@ -30,6 +30,7 @@ export interface Member {
   full_name: string;
   phone: string;
   normalized_phone: string;
+  gender?: 'Male' | 'Female' | 'Other' | string | null;
   photo?: PhotoObject | null;
   joining_date?: string | null;
   joining_date_known: boolean;
@@ -41,6 +42,9 @@ export interface Member {
   current_membership?: MembershipSnapshot | null;
   status: 'paid' | 'expiring_soon' | 'expired';
   remaining_days: number;
+  last_payment_date?: string | null;
+  total_months_completed?: number;
+  lifetime_revenue?: number;
 }
 
 export interface PaginatedMembers {
@@ -204,3 +208,36 @@ export interface LegacyImportPreview {
   duplicate_codes: string[];
   rows: LegacyImportPreviewRow[];
 }
+
+export interface WalletTransactionItem {
+  id: string;
+  member_id: string;
+  member_code: string;
+  member_name: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  status: string;
+  record_origin: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
+export interface PaymentMethodSummary {
+  method: string;
+  amount: number;
+  count: number;
+}
+
+export interface WalletReportResponse {
+  period: string;
+  start_date?: string | null;
+  end_date: string;
+  total_revenue: number;
+  total_transactions: number;
+  average_ticket: number;
+  by_payment_method: PaymentMethodSummary[];
+  daily_totals: { date: string; amount: number }[];
+  recent_transactions: WalletTransactionItem[];
+}
+

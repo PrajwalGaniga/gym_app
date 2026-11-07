@@ -36,3 +36,4 @@ async def get_current_admin(request: Request) -> Dict[str, Any]:
         )
 
     return admin
+

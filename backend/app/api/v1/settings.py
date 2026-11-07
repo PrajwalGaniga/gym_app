@@ -13,3 +13,4 @@ async def get_settings(admin: dict = Depends(get_current_admin)):
 async def update_settings(data: SettingsUpdate, admin: dict = Depends(get_current_admin)):
     updates = data.model_dump(exclude_unset=True)
     return await settings_repo.update_settings(updates)
+

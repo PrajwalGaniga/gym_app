@@ -42,3 +42,4 @@ class SettingsRepository:
         return await self.get_settings()
 
 settings_repo = SettingsRepository()
+

@@ -27,3 +27,4 @@ class PlanResponse(PlanBase):
     id: str
     created_at: datetime
     updated_at: datetime
+

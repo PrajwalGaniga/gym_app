@@ -41,3 +41,4 @@ class LegacyImportResultResponse(BaseModel):
     imported_count: int
     skipped_count: int
     errors: List[str]
+

@@ -137,3 +137,4 @@ async def get_member_attendance(
     admin: dict = Depends(get_current_admin)
 ):
     return await attendance_service.get_member_attendance(member_id=member_id, page=page, page_size=page_size)
+

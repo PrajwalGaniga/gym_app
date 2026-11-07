@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { MemberTable } from '@/components/members/MemberTable';
+import { MemberCardGrid } from '@/components/members/MemberCardGrid';
 
 export default function ExpiredMembersPage() {
   return (
-    <MemberTable
+    <MemberCardGrid
       initialCategory="expired"
-      pageTitle="Expired Members"
-      pageSubtitle="Members whose membership validity ended prior to today in the gym's configured timezone."
+      pageTitle="🔴 Expired Members"
+      pageSubtitle="Members whose monthly membership validity ended and have not paid next month's fee (red border)."
     />
   );
 }
+

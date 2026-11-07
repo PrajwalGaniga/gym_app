@@ -27,3 +27,4 @@ def format_date_to_iso(d: Any) -> Optional[str]:
     if isinstance(d, (date, datetime)):
         return d.strftime("%Y-%m-%d")
     return d
+

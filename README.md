@@ -139,3 +139,4 @@ npm run build
    ```bash
    mongodump --uri="<MONGODB_URI>" --db=gym_management --out=./backups/$(date +%F)
    ```
+

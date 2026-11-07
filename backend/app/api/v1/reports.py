@@ -1,14 +1,23 @@
 from fastapi import APIRouter, Depends, Query, Response
+from typing import Optional
 from datetime import date, timedelta
 from app.schemas.reports import (
     CollectionsReportResponse,
     MembersReportResponse,
-    AttendanceReportResponse
+    AttendanceReportResponse,
+    WalletReportResponse
 )
 from app.services.report_service import report_service
 from app.api.deps import get_current_admin
 
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
+
+@router.get("/wallet", response_model=WalletReportResponse)
+async def get_wallet_report(
+    period: str = Query("30d", description="Filter range: 7d, 15d, 30d, 6m, 1y, all"),
+    admin: dict = Depends(get_current_admin)
+):
+    return await report_service.get_wallet_report(period)
 
 @router.get("/collections", response_model=CollectionsReportResponse)
 async def get_collections_report(
@@ -58,3 +67,4 @@ async def export_attendance_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=attendance_export.csv"}
     )
+

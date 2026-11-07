@@ -56,3 +56,4 @@ Database interactions are strictly encapsulated behind a repository layer:
 - `attendance`: Check-in event records, timestamps, local dates, snapshot of status at check-in.
 - `settings`: Gym operational configurations (timezone, currency, code prefix, attendance policies).
 - `audit_logs`: Detailed administrative logs for sensitive actions (void payments, legacy migrations, archive actions).
+
