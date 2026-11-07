@@ -36,6 +36,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Content-Type', 'application/json');
   }
 
+  // Attach token for cross-domain auth fallback (Vercel -> Render)
+  if (typeof window !== 'undefined') {
+    const token = sessionStorage.getItem('gym_auth_token') || localStorage.getItem('gym_auth_token');
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
   const response = await fetch(url, {
     ...options,
     headers,
@@ -75,13 +83,25 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   // Auth
-  login: (credentials: { phone?: string; pin?: string; username?: string; password?: string }) =>
-    request<{ access_token: string; admin: Admin }>('/auth/login', {
+  login: async (credentials: { phone?: string; pin?: string; username?: string; password?: string }) => {
+    const res = await request<{ access_token: string; admin: Admin }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
-    }),
+    });
+    if (typeof window !== 'undefined' && res && res.access_token) {
+      sessionStorage.setItem('gym_auth_token', res.access_token);
+      localStorage.setItem('gym_auth_token', res.access_token);
+    }
+    return res;
+  },
 
-  logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
+  logout: async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('gym_auth_token');
+      localStorage.removeItem('gym_auth_token');
+    }
+    return request<{ message: string }>('/auth/logout', { method: 'POST' });
+  },
 
   getMe: () => request<Admin>('/auth/me'),
 

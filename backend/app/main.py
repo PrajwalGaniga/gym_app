@@ -79,12 +79,22 @@ async def request_id_and_logging_middleware(request: Request, call_next):
     return response
 
 # CORS Configuration
-raw_origins = [o.strip() for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()]
-allowed_origins = list(set(raw_origins + ["http://localhost:3000", "http://127.0.0.1:3000"]))
+raw_origins = [o.strip().rstrip("/") for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()]
+for o in list(raw_origins):
+    if not o.startswith("http://") and not o.startswith("https://"):
+        raw_origins.append(f"https://{o}")
+        raw_origins.append(f"http://{o}")
+
+allowed_origins = list(set(raw_origins + [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://sinan-gym.vercel.app"
+]))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.)*vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
