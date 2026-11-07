@@ -103,9 +103,6 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
       setIsRenewing(false);
     }
   };
-      setIsRenewing(false);
-    }
-  };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
