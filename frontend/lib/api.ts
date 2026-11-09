@@ -11,7 +11,9 @@ import {
   Settings,
   RenewalPreview,
   LegacyImportPreview,
-  WalletReportResponse
+  WalletReportResponse,
+  PortalCheckInResponse,
+  PortalGymInfo
 } from './types';
 
 export const getApiBaseUrl = (): string => {
@@ -320,6 +322,20 @@ export const api = {
     request<any>('/imports/commit', {
       method: 'POST',
       body: JSON.stringify({ rows }),
+    }),
+
+  // Public Member Check-In Portal
+  getPortalGymInfo: () => request<PortalGymInfo>('/portal/gym-info'),
+
+  portalCheckIn: (data: {
+    member_code: string;
+    phone_last_2: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  }) =>
+    request<PortalCheckInResponse>('/portal/checkin', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 

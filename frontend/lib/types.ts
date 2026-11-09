@@ -174,7 +174,47 @@ export interface Settings {
   duplicate_checkin_window_minutes: number;
   expired_checkin_policy: 'warn' | 'block';
   date_format: string;
+  gym_latitude?: number | null;
+  gym_longitude?: number | null;
+  geofence_radius_meters?: number | null;
+  geofence_enabled?: boolean | null;
+  weekly_off_days?: number[] | null;
+  gym_holidays?: string[] | null;
   updated_at: string;
+}
+
+export interface PortalGymInfo {
+  gym_name: string;
+  trainer_name: string;
+  logo_url?: string | null;
+  geofence_enabled: boolean;
+}
+
+export interface PortalCheckInResponse {
+  member_id: string;
+  full_name: string;
+  member_code: string;
+  photo_url?: string | null;
+  gender?: string | null;
+  already_checked_in_today: boolean;
+  check_in_time: string;
+  check_in_date: string;
+  streak: {
+    current_streak: number;
+    best_streak: number;
+    sunday_exempt_applied: boolean;
+  };
+  membership: {
+    plan_name: string;
+    status: 'paid' | 'expiring_soon' | 'expired';
+    days_remaining: number;
+    expiry_date?: string | null;
+  };
+  last_payment?: {
+    amount: number;
+    payment_date?: string | null;
+    payment_method?: string | null;
+  } | null;
 }
 
 export interface RenewalPreview {

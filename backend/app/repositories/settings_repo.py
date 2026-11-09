@@ -42,6 +42,18 @@ class SettingsRepository:
             updates_needed["coach_phone"] = "9110687983"
         if "coach_pin" not in doc:
             updates_needed["coach_pin"] = "0608"
+        if "gym_latitude" not in doc:
+            updates_needed["gym_latitude"] = None
+        if "gym_longitude" not in doc:
+            updates_needed["gym_longitude"] = None
+        if "geofence_radius_meters" not in doc:
+            updates_needed["geofence_radius_meters"] = 100
+        if "geofence_enabled" not in doc:
+            updates_needed["geofence_enabled"] = True
+        if "weekly_off_days" not in doc:
+            updates_needed["weekly_off_days"] = [6]
+        if "gym_holidays" not in doc:
+            updates_needed["gym_holidays"] = []
 
         if updates_needed:
             await self.collection.update_one({"_id": doc["_id"]}, {"$set": updates_needed})

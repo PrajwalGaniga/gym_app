@@ -9,6 +9,7 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.imports import router as imports_router
+from app.api.v1.portal import router as portal_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -22,4 +23,5 @@ api_router.include_router(plans_router)
 api_router.include_router(reports_router)
 api_router.include_router(settings_router)
 api_router.include_router(imports_router)
+api_router.include_router(portal_router)
 
