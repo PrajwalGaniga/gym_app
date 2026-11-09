@@ -30,3 +30,4 @@ async def portal_check_in(req: PortalCheckInRequest, request: Request):
         client_ip = request.client.host if request.client else "unknown"
 
     return await portal_service.check_in_member(req, client_ip)
+

@@ -230,6 +230,18 @@ export default function MemberCheckInPage() {
                 {result.streak.current_streak}-Day Workout Streak!
               </h2>
 
+              {result.streak.grace_period_applied && (
+                <div className={styles.graceWarningBadge}>
+                  <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                  <div>
+                    <div>Streak Saved by 48h Grace Period!</div>
+                    <div style={{ fontSize: '0.72rem', color: '#fde68a', fontWeight: 500 }}>
+                      You missed your previous workout (&gt;24h), but checked in within the 48-hour grace window. Keep the momentum going!
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {result.streak.sunday_exempt_applied && (
                 <div className={styles.sundayRestBadge}>
                   <span>🏖️</span>
@@ -358,3 +370,4 @@ export default function MemberCheckInPage() {
     </div>
   );
 }
+

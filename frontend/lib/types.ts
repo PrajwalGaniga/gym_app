@@ -203,6 +203,9 @@ export interface PortalCheckInResponse {
     current_streak: number;
     best_streak: number;
     sunday_exempt_applied: boolean;
+    grace_period_applied: boolean;
+    grace_warning_message?: string | null;
+    hours_since_last_checkin?: number | null;
   };
   membership: {
     plan_name: string;

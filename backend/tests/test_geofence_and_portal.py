@@ -54,3 +54,83 @@ def test_sunday_exempt_streak_logic():
     # Streak should be 3! (Fri, Sat, Mon, Sunday skipped safely)
     assert streak == 3
     assert sunday_exempt_applied is True
+
+def test_48h_grace_period_streak_logic():
+    weekly_off_days = {6}
+    gym_holidays = set()
+
+    # Case A: 1 Missed working day (between 24h and 48h)
+    # Thursday: Attended
+    # Friday: Missed (grace)
+    # Saturday: Attended (Today)
+    attended_set_grace = {
+        date(2026, 11, 5),  # Thu
+        date(2026, 11, 7),  # Sat (Today)
+    }
+
+    curr_d = date(2026, 11, 7)
+    streak = 0
+    consecutive_missed = 0
+    grace_applied = False
+    recent_gap = False
+
+    while True:
+        if curr_d in attended_set_grace:
+            streak += 1
+            consecutive_missed = 0
+            if recent_gap:
+                grace_applied = True
+            curr_d -= timedelta(days=1)
+        elif curr_d.weekday() in weekly_off_days or curr_d in gym_holidays:
+            curr_d -= timedelta(days=1)
+        else:
+            consecutive_missed += 1
+            if consecutive_missed == 1:
+                if streak > 0 and not recent_gap:
+                    recent_gap = True
+                curr_d -= timedelta(days=1)
+            else:
+                break
+
+    # Thursday (1) + Saturday (1) = 2 streak saved by 48h grace!
+    assert streak == 2
+    assert grace_applied is True
+
+    # Case B: 2 Missed working days (>48h elapsed)
+    # Wednesday: Attended
+    # Thursday: Missed working day
+    # Friday: Missed working day
+    # Saturday: Attended (Today)
+    attended_set_broken = {
+        date(2026, 11, 4),  # Wed
+        date(2026, 11, 7),  # Sat (Today)
+    }
+
+    curr_d = date(2026, 11, 7)
+    streak_broken = 0
+    consecutive_missed = 0
+    grace_applied_broken = False
+    recent_gap = False
+
+    while True:
+        if curr_d in attended_set_broken:
+            streak_broken += 1
+            consecutive_missed = 0
+            if recent_gap:
+                grace_applied_broken = True
+            curr_d -= timedelta(days=1)
+        elif curr_d.weekday() in weekly_off_days or curr_d in gym_holidays:
+            curr_d -= timedelta(days=1)
+        else:
+            consecutive_missed += 1
+            if consecutive_missed == 1:
+                if streak_broken > 0 and not recent_gap:
+                    recent_gap = True
+                curr_d -= timedelta(days=1)
+            else:
+                break
+
+    # Streak broken! Resets to 1 (only Saturday)
+    assert streak_broken == 1
+    assert grace_applied_broken is False
+

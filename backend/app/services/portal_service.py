@@ -151,7 +151,7 @@ class PortalService:
                 "created_by": "portal_self_qr"
             })
 
-        # 4. Sunday & Holiday-Exempt Streak Calculation
+        # 4. Sunday & Holiday-Exempt Streak Calculation with 24-48h Grace Period
         distinct_dates = await attendance_repo.collection.distinct(
             "check_in_local_date",
             {"member_id": member_id}
@@ -172,24 +172,56 @@ class PortalService:
             except Exception:
                 pass
 
-        # Calculate current consecutive streak backwards from today
+        # Hours elapsed since previous check-in (before today)
+        prev_checkin = await attendance_repo.collection.find_one(
+            {"member_id": member_id, "check_in_local_date": {"$ne": today_iso}},
+            sort=[("check_in_at_utc", -1)]
+        )
+        hours_since_last = None
+        if prev_checkin and prev_checkin.get("check_in_at_utc"):
+            prev_utc = prev_checkin["check_in_at_utc"]
+            if prev_utc.tzinfo is None:
+                prev_utc = prev_utc.replace(tzinfo=timezone.utc)
+            now_utc = datetime.now(timezone.utc)
+            hours_since_last = round((now_utc - prev_utc).total_seconds() / 3600.0, 1)
+
+        # Calculate current streak backwards from today (allowing up to 1 missed working day = 48h grace)
         current_streak = 0
         sunday_exempt_applied = False
+        grace_period_applied = False
+        consecutive_missed = 0
         curr_d = gym_today
+        recent_gap_encountered = False
 
         while True:
             if curr_d in attended_set:
                 current_streak += 1
+                consecutive_missed = 0
+                if recent_gap_encountered:
+                    # Gained attendance prior to the gap -> grace period successfully saved prior streak!
+                    grace_period_applied = True
                 curr_d -= timedelta(days=1)
             elif curr_d.weekday() in weekly_off_days or curr_d in gym_holidays:
-                # Rest Day / Gym Closed: Skip without breaking the streak!
+                # Rest Day / Gym Closed: Skip without penalty
                 sunday_exempt_applied = True
                 curr_d -= timedelta(days=1)
             else:
-                # Open gym day without attendance: streak ends
-                break
+                # Open gym working day without attendance
+                consecutive_missed += 1
+                if consecutive_missed == 1:
+                    # 1 missed working day: within 48h grace period!
+                    if current_streak > 0 and not recent_gap_encountered:
+                        recent_gap_encountered = True
+                    curr_d -= timedelta(days=1)
+                else:
+                    # 2+ consecutive missed working days (>48h elapsed): streak breaks!
+                    break
 
-        # Calculate all-time best streak
+        grace_warning_message = None
+        if grace_period_applied:
+            grace_warning_message = "⚠️ Streak Saved: You missed a workout (>24h), but checked in within the 48-hour grace window!"
+
+        # Calculate all-time best streak (also allowing 1 missed working day grace)
         best_streak = max(current_streak, 1)
         if attended_set:
             sorted_dates = sorted(list(attended_set))
@@ -204,17 +236,19 @@ class PortalService:
                     if gap_days == 1:
                         running += 1
                     else:
-                        # Check if all days in between were weekly off or holidays
-                        all_rest = True
+                        # Count open working days missed between prev_d and d
+                        missed_open_days = 0
                         chk = prev_d + timedelta(days=1)
                         while chk < d:
                             if chk.weekday() not in weekly_off_days and chk not in gym_holidays:
-                                all_rest = False
-                                break
+                                missed_open_days += 1
                             chk += timedelta(days=1)
-                        if all_rest:
+
+                        if missed_open_days <= 1:
+                            # 1 missed working day allowed under 48h grace rule
                             running += 1
                         else:
+                            # >1 missed working days (>48h) breaks streak
                             running = 1
                 if running > best_streak:
                     best_streak = running
@@ -260,7 +294,10 @@ class PortalService:
             streak=StreakDetails(
                 current_streak=current_streak,
                 best_streak=best_streak,
-                sunday_exempt_applied=sunday_exempt_applied
+                sunday_exempt_applied=sunday_exempt_applied,
+                grace_period_applied=grace_period_applied,
+                grace_warning_message=grace_warning_message,
+                hours_since_last_checkin=hours_since_last
             ),
             membership=MembershipDetails(
                 plan_name=plan_name,
@@ -272,3 +309,4 @@ class PortalService:
         )
 
 portal_service = PortalService()
+

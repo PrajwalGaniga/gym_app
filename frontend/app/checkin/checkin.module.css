@@ -282,6 +282,23 @@
   gap: 5px;
 }
 
+.graceWarningBadge {
+  background: rgba(234, 88, 12, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  color: #fed7aa;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+  animation: popText 0.3s ease;
+}
+
 /* Member Avatar & Identity Card */
 .memberHeaderRow {
   display: flex;
@@ -457,3 +474,4 @@
   text-align: center;
   margin-top: 14px;
 }
+

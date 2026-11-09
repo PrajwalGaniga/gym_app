@@ -11,6 +11,9 @@ class StreakDetails(BaseModel):
     current_streak: int
     best_streak: int
     sunday_exempt_applied: bool
+    grace_period_applied: bool = False
+    grace_warning_message: Optional[str] = None
+    hours_since_last_checkin: Optional[float] = None
 
 class MembershipDetails(BaseModel):
     plan_name: str
@@ -35,3 +38,4 @@ class PortalCheckInResponse(BaseModel):
     streak: StreakDetails
     membership: MembershipDetails
     last_payment: Optional[LastPaymentDetails] = None
+
