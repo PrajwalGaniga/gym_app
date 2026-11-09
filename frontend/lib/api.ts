@@ -327,6 +327,12 @@ export const api = {
   // Public Member Check-In Portal
   getPortalGymInfo: () => request<PortalGymInfo>('/portal/gym-info'),
 
+  portalLogin: (data: { member_code: string; phone_last_2: string }) =>
+    request<PortalCheckInResponse>('/portal/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   portalCheckIn: (data: {
     member_code: string;
     phone_last_2: string;

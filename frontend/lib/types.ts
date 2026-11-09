@@ -211,13 +211,18 @@ export interface PortalCheckInResponse {
     plan_name: string;
     status: 'paid' | 'expiring_soon' | 'expired';
     days_remaining: number;
+    start_date?: string | null;
     expiry_date?: string | null;
+    paid_date?: string | null;
   };
   last_payment?: {
     amount: number;
     payment_date?: string | null;
     payment_method?: string | null;
   } | null;
+  attendance_dates: string[];
+  weekly_off_days: number[];
+  gym_holidays: string[];
 }
 
 export interface RenewalPreview {

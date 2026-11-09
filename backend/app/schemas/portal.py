@@ -1,5 +1,9 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+
+class PortalLoginRequest(BaseModel):
+    member_code: str = Field(..., min_length=1, max_length=30, description="Gym Member ID / Code")
+    phone_last_2: str = Field(..., min_length=2, max_length=2, description="Last 2 digits of registered phone number")
 
 class PortalCheckInRequest(BaseModel):
     member_code: str = Field(..., min_length=1, max_length=30, description="Gym Member ID / Code")
@@ -19,7 +23,9 @@ class MembershipDetails(BaseModel):
     plan_name: str
     status: str
     days_remaining: int
+    start_date: Optional[str] = None
     expiry_date: Optional[str] = None
+    paid_date: Optional[str] = None
 
 class LastPaymentDetails(BaseModel):
     amount: float
@@ -38,4 +44,7 @@ class PortalCheckInResponse(BaseModel):
     streak: StreakDetails
     membership: MembershipDetails
     last_payment: Optional[LastPaymentDetails] = None
+    attendance_dates: List[str] = []
+    weekly_off_days: List[int] = [6]
+    gym_holidays: List[str] = []
 

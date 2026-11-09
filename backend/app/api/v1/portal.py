@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, status
-from app.schemas.portal import PortalCheckInRequest, PortalCheckInResponse
+from app.schemas.portal import PortalLoginRequest, PortalCheckInRequest, PortalCheckInResponse
 from app.services.portal_service import portal_service
 from app.repositories.settings_repo import settings_repo
 
@@ -16,10 +16,25 @@ async def get_portal_gym_info():
         "geofence_enabled": settings.get("geofence_enabled", True) and settings.get("gym_latitude") is not None
     }
 
+@router.post("/login", response_model=PortalCheckInResponse, status_code=status.HTTP_200_OK)
+async def portal_login(req: PortalLoginRequest, request: Request):
+    """
+    Step 1: Public member portal login.
+    Accessible from anywhere (NO GPS check).
+    Returns member streak, attendance calendar, and membership details.
+    """
+    client_ip = request.headers.get("X-Forwarded-For")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
+
+    return await portal_service.view_member_portal(req, client_ip)
+
 @router.post("/checkin", response_model=PortalCheckInResponse, status_code=status.HTTP_200_OK)
 async def portal_check_in(req: PortalCheckInRequest, request: Request):
     """
-    Public member self-checkin endpoint.
+    Step 2: Member check-in endpoint with GPS verification.
     Verifies member ID, last 2 digits of phone, GPS geofence, records attendance,
     and returns member streak, membership validity, and payment details.
     """
