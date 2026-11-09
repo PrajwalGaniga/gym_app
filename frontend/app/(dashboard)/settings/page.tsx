@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import QRCode from 'qrcode';
 import styles from '@/components/members/members.module.css';
 import { api } from '@/lib/api';
 import { Settings } from '@/lib/types';
@@ -80,11 +79,16 @@ export default function SettingsPage() {
   // Render QR code to preview canvas whenever checkinUrl is set
   useEffect(() => {
     if (checkinUrl && qrCanvasRef.current) {
-      QRCode.toCanvas(qrCanvasRef.current, checkinUrl, {
-        width: 220,
-        margin: 2,
-        color: { dark: '#0f172a', light: '#ffffff' },
-      }).catch((err) => console.error('Failed to render QR canvas:', err));
+      import('qrcode').then((QRCodeModule) => {
+        const QRCode = QRCodeModule.default || QRCodeModule;
+        if (qrCanvasRef.current) {
+          QRCode.toCanvas(qrCanvasRef.current, checkinUrl, {
+            width: 220,
+            margin: 2,
+            color: { dark: '#0f172a', light: '#ffffff' },
+          }).catch((err: any) => console.error('Failed to render QR canvas:', err));
+        }
+      });
     }
   }, [checkinUrl]);
 
@@ -152,6 +156,8 @@ export default function SettingsPage() {
       ctx.fill();
 
       // Generate large QR code DataURL and render onto canvas
+      const QRCodeModule = await import('qrcode');
+      const QRCode = QRCodeModule.default || QRCodeModule;
       const qrDataUrl = await QRCode.toDataURL(checkinUrl, {
         width: 800,
         margin: 2,
