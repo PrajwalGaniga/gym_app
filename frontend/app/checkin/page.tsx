@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '@/components/member-portal/portal.module.css';
 import { api, ApiError } from '@/lib/api';
 import { PortalCheckInResponse, PortalGymInfo } from '@/lib/types';
@@ -12,6 +12,24 @@ import { PortalProfile } from '@/components/member-portal/PortalProfile';
 import { CelebrationModal } from '@/components/member-portal/CelebrationModal';
 import { BottomNav } from '@/components/member-portal/BottomNav';
 
+/**
+ * Returns today's ISO date string ("YYYY-MM-DD") in the gym's configured timezone (Asia/Kolkata).
+ */
+function getGymTodayIsoString(timezone = 'Asia/Kolkata'): string {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(new Date());
+  } catch {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+}
+
 export default function MemberPortalPage() {
   const [theme, setTheme] = useState<PortalTheme>('dark');
   const [activeTab, setActiveTab] = useState<PortalTab>('home');
@@ -19,6 +37,9 @@ export default function MemberPortalPage() {
 
   const [savedMemberCode, setSavedMemberCode] = useState('');
   const [savedPhoneLast2, setSavedPhoneLast2] = useState('');
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(true);
+  const [isSwitchingMember, setIsSwitchingMember] = useState(false);
+
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -27,7 +48,13 @@ export default function MemberPortalPage() {
   const [portalData, setPortalData] = useState<PortalCheckInResponse | null>(null);
   const [showCelebrationModal, setShowCelebrationModal] = useState(false);
 
-  // Load saved credentials & theme from localStorage
+  // References for silent refresh
+  const memberCodeRef = useRef('');
+  const phoneLast2Ref = useRef('');
+  memberCodeRef.current = savedMemberCode;
+  phoneLast2Ref.current = savedPhoneLast2;
+
+  // 1. Initial Load: Retrieve theme & auto-login remembered member
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('mh_portal_theme') as PortalTheme;
@@ -39,8 +66,38 @@ export default function MemberPortalPage() {
 
       const storedCode = localStorage.getItem('gym_member_code');
       const storedPhone = localStorage.getItem('gym_phone_last_2');
-      if (storedCode) setSavedMemberCode(storedCode);
-      if (storedPhone) setSavedPhoneLast2(storedPhone);
+
+      if (storedCode && storedPhone) {
+        setSavedMemberCode(storedCode);
+        setSavedPhoneLast2(storedPhone);
+
+        // Auto-login remembered member directly to home dashboard!
+        api
+          .portalLogin({
+            member_code: storedCode,
+            phone_last_2: storedPhone,
+          })
+          .then((res) => {
+            setPortalData(res);
+            setActiveTab('home');
+          })
+          .catch((err) => {
+            console.warn('Auto-login session expired or invalid:', err);
+            if (err instanceof ApiError && err.status === 401) {
+              localStorage.removeItem('gym_member_code');
+              localStorage.removeItem('gym_phone_last_2');
+              setSavedMemberCode('');
+              setSavedPhoneLast2('');
+            }
+          })
+          .finally(() => {
+            setIsAutoLoggingIn(false);
+          });
+      } else {
+        setIsAutoLoggingIn(false);
+      }
+    } else {
+      setIsAutoLoggingIn(false);
     }
 
     api
@@ -48,6 +105,55 @@ export default function MemberPortalPage() {
       .then((info) => setGymInfo(info))
       .catch((err) => console.error('Failed to load gym info:', err));
   }, []);
+
+  // 2. Midnight Rollover & Day Transition Watcher
+  // When night passes 12:00 AM (in Asia/Kolkata), automatically resets the check-in button for the new day
+  const refreshMemberDataSilently = useCallback(async () => {
+    const code = memberCodeRef.current;
+    const phone = phoneLast2Ref.current;
+    if (!code || !phone) return;
+
+    try {
+      const fresh = await api.portalLogin({
+        member_code: code,
+        phone_last_2: phone,
+      });
+      setPortalData(fresh);
+    } catch (err) {
+      console.warn('Silent midnight refresh error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!portalData || !savedMemberCode || !savedPhoneLast2) return;
+
+    const checkMidnightRollover = () => {
+      const todayIso = getGymTodayIsoString();
+      // If portal data was recorded on previous date, trigger silent refresh for today
+      if (portalData.check_in_date && portalData.check_in_date !== todayIso) {
+        refreshMemberDataSilently();
+      }
+    };
+
+    // Check when user unlocks phone or returns to tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkMidnightRollover();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', checkMidnightRollover);
+
+    // Periodic check every 60 seconds across midnight
+    const intervalId = setInterval(checkMidnightRollover, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', checkMidnightRollover);
+      clearInterval(intervalId);
+    };
+  }, [portalData, savedMemberCode, savedPhoneLast2, refreshMemberDataSilently]);
 
   const toggleTheme = () => {
     const nextTheme: PortalTheme = theme === 'dark' ? 'light' : 'dark';
@@ -79,6 +185,7 @@ export default function MemberPortalPage() {
       setSavedMemberCode(memberCode);
       setSavedPhoneLast2(phoneLast2);
       setPortalData(res);
+      setIsSwitchingMember(false);
       setActiveTab('home');
     } catch (err: any) {
       if (err instanceof ApiError) {
@@ -138,12 +245,14 @@ export default function MemberPortalPage() {
     }
   };
 
+  // Allows checking in another member on the same device
   const handleSwitchMember = () => {
-    setPortalData(null);
+    setIsSwitchingMember(true);
     setCheckInError('');
     setShowCelebrationModal(false);
   };
 
+  // Completely signs out and clears credentials
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('gym_member_code');
@@ -152,6 +261,7 @@ export default function MemberPortalPage() {
     setSavedMemberCode('');
     setSavedPhoneLast2('');
     setPortalData(null);
+    setIsSwitchingMember(false);
     setCheckInError('');
     setShowCelebrationModal(false);
   };
@@ -167,8 +277,10 @@ export default function MemberPortalPage() {
               className={styles.hamburgerBtn}
               aria-label="Navigation Menu"
               onClick={() => {
-                if (portalData) {
+                if (portalData && !isSwitchingMember) {
                   setActiveTab((prev) => (prev === 'profile' ? 'home' : 'profile'));
+                } else if (isSwitchingMember) {
+                  setIsSwitchingMember(false);
                 }
               }}
             >
@@ -193,15 +305,30 @@ export default function MemberPortalPage() {
         </header>
 
         {/* Dynamic Screen View */}
-        {!portalData ? (
+        {isAutoLoggingIn ? (
+          /* High-Speed Auto-Login Splash */
+          <div className={styles.autoLoginCard}>
+            <img
+              src={theme === 'dark' ? '/assets/hero-full-dark.png' : '/assets/hero-full-light.png'}
+              alt="Muscle Hunt"
+              className={styles.autoLoginHero}
+            />
+            <div className={styles.autoLoginSpinnerGroup}>
+              <div className={styles.autoLoginTitle}>⚡ LOADING MUSCLE HUNT QUEST...</div>
+              <div className={styles.autoLoginProgressBar}>
+                <div className={styles.autoLoginProgressFill} />
+              </div>
+            </div>
+          </div>
+        ) : !portalData || isSwitchingMember ? (
           /* Screen 1: Login / Enter Gym Portal */
           <PortalLogin
             theme={theme}
             onLogin={handleLogin}
             isLoading={isLoggingIn}
             errorMessage={loginError}
-            initialMemberCode={savedMemberCode}
-            initialPhoneLast2={savedPhoneLast2}
+            initialMemberCode={isSwitchingMember ? '' : savedMemberCode}
+            initialPhoneLast2={isSwitchingMember ? '' : savedPhoneLast2}
           />
         ) : (
           /* Logged In Experience with Bottom Navigation */

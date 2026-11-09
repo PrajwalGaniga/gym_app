@@ -199,6 +199,82 @@
   image-rendering: crisp-edges;
 }
 
+/* =========================================================================
+   AUTO-LOGIN SPLASH SCREEN (FAST 1-TAP QR ACCESS)
+   ========================================================================= */
+.autoLoginCard {
+  width: 100%;
+  border-radius: 18px;
+  background: var(--card-bg);
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.autoLoginHero {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.autoLoginSpinnerGroup {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.autoLoginTitle {
+  font-family: var(--font-silkscreen, 'Silkscreen', monospace);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.autoLoginProgressBar {
+  width: 100%;
+  max-width: 260px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1.5px solid var(--card-border);
+  overflow: hidden;
+}
+
+.themeLight .autoLoginProgressBar {
+  background: #e2e8f0;
+  border: 1.5px solid #18181b;
+}
+
+.autoLoginProgressFill {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+  border-radius: 2px;
+  animation: autoLoginScan 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes autoLoginScan {
+  0% {
+    transform: translateX(0%);
+    width: 30%;
+  }
+  100% {
+    transform: translateX(230%);
+    width: 35%;
+  }
+}
+
 .loginCard {
   width: 100%;
   border-radius: 18px;
