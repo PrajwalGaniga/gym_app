@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from app.utils.geofence import calculate_distance_meters
 
 def test_haversine_distance_accurate():
-    # IronPulse Fitness mock coordinates (Bangalore / Mumbai / etc.)
+    # Muscle Hunt mock coordinates (Bangalore / Mumbai / etc.)
     gym_lat = 12.9716
     gym_lon = 77.5946
 

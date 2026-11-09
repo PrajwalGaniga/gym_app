@@ -111,7 +111,7 @@ export default function MemberPortalPage() {
           setIsCheckingIn(false);
           console.warn('Geolocation error:', geoErr);
           setErrorMessage(
-            '📍 Location permission is required to verify you are inside IronPulse Fitness. Please enable GPS on your phone.'
+            '📍 Location permission is required to verify you are inside Muscle Hunt. Please enable GPS on your phone.'
           );
         },
         { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 }
@@ -210,7 +210,7 @@ export default function MemberPortalPage() {
           <div className={styles.loginCard}>
             <div className={styles.brandHeader}>
               <div className={styles.logoBadge}>🏋️</div>
-              <h1 className={styles.gymTitle}>{gymInfo?.gym_name || 'IronPulse Fitness'}</h1>
+              <h1 className={styles.gymTitle}>{gymInfo?.gym_name || 'Muscle Hunt'}</h1>
               <p className={styles.gymSubtitle}>Member Portal & Express Check-In</p>
             </div>
 

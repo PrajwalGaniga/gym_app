@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div className={styles.loginCard}>
         <div className={styles.brandHeader}>
           <div className={styles.logoIcon}>🏋️</div>
-          <h1 className={styles.title}>IronPulse Fitness</h1>
+          <h1 className={styles.title}>Muscle Hunt</h1>
           <p className={styles.subtitle}>Coach & Management Portal</p>
         </div>
 

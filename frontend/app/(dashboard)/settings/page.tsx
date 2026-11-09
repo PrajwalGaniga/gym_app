@@ -139,7 +139,7 @@ export default function SettingsPage() {
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 64px system-ui, -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(gymName || 'IronPulse Fitness', 600, 145);
+      ctx.fillText(gymName || 'Muscle Hunt', 600, 145);
 
       ctx.fillStyle = '#60a5fa';
       ctx.font = '700 28px system-ui, sans-serif';
@@ -183,11 +183,11 @@ export default function SettingsPage() {
 
       ctx.fillStyle = '#64748b';
       ctx.font = '20px system-ui, sans-serif';
-      ctx.fillText('IronPulse Gym Management & Fee System', 600, 1515);
+      ctx.fillText('Muscle Hunt Gym Management & Fee System', 600, 1515);
 
       // Trigger high-res file download
       const downloadLink = document.createElement('a');
-      downloadLink.download = `${(gymName || 'IronPulse_Gym').replace(/\s+/g, '_')}_CheckIn_QR_Poster.png`;
+      downloadLink.download = `${(gymName || 'Muscle_Hunt').replace(/\s+/g, '_')}_CheckIn_QR_Poster.png`;
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.click();
     } catch (err: any) {
@@ -320,7 +320,7 @@ export default function SettingsPage() {
               required
               value={gymName}
               onChange={(e) => setGymName(e.target.value)}
-              placeholder="e.g. IronPulse Fitness"
+              placeholder="e.g. Muscle Hunt"
             />
             <Input
               label="Trainer / Coach Display Name"

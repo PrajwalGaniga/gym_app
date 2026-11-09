@@ -62,7 +62,7 @@ async def test_coach_pin_auth_and_settings_lifecycle():
 
         # 7. Restore settings back to default coach phone / PIN and gym name
         restore_res = await client.put("/api/v1/settings", headers=headers, json={
-            "gym_name": "IronPulse Fitness Club",
+            "gym_name": "Muscle Hunt",
             "trainer_name": "Coach",
             "coach_phone": "9110687983",
             "coach_pin": "0608"

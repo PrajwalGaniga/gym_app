@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'IronPulse Gym Management & Fee System',
+  title: 'Muscle Hunt Gym Management & Fee System',
   description: 'Production-ready administrative membership and fee management system for gym coaches.',
 };
 

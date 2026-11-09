@@ -1,4 +1,4 @@
-# IronPulse Gym Membership & Fee Management System
+# Muscle Hunt Gym Membership & Fee Management System
 
 A production-minded, full-stack web application designed for gym coaches and administrators to manage members, membership plans, fee collections, renewals, dynamic expiry tracking, and daily gym attendance.
 

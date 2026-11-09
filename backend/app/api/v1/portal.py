@@ -10,7 +10,7 @@ async def get_portal_gym_info():
     """Public basic gym identity for the check-in page header."""
     settings = await settings_repo.get_settings()
     return {
-        "gym_name": settings.get("gym_name", "IronPulse Fitness"),
+        "gym_name": settings.get("gym_name", "Muscle Hunt"),
         "trainer_name": settings.get("trainer_name", "Coach"),
         "logo_url": settings.get("logo_url"),
         "geofence_enabled": settings.get("geofence_enabled", True) and settings.get("gym_latitude") is not None

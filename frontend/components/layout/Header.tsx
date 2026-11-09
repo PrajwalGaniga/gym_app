@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuToggle, admin }) => {
   const router = useRouter();
-  const [gymName, setGymName] = useState('IronPulse Fitness');
+  const [gymName, setGymName] = useState('Muscle Hunt');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [isSearching, setIsSearching] = useState(false);

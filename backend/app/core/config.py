@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     FRONTEND_ORIGIN: str = "http://localhost:3000"
 
     # Gym Defaults
-    DEFAULT_GYM_NAME: str = "IronPulse Fitness Club"
+    DEFAULT_GYM_NAME: str = "Muscle Hunt"
     DEFAULT_TIMEZONE: str = "Asia/Kolkata"
     DEFAULT_CURRENCY: str = "INR"
     DEFAULT_PHONE_CODE: str = "+91"

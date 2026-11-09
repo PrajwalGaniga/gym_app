@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <div className={styles.sidebarBrand}>
         <span className={styles.brandIcon}>🏋️</span>
         <div>
-          <div className={styles.brandTitle}>IronPulse Gym</div>
+          <div className={styles.brandTitle}>Muscle Hunt</div>
           <div className={styles.brandSub}>Coach Portal</div>
         </div>
       </div>

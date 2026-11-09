@@ -36,6 +36,8 @@ class SettingsRepository:
 
         # Ensure defaults for new fields if not already stored
         updates_needed = {}
+        if doc.get("gym_name") in ["IronPulse Fitness Club", "IronPulse Fitness", "IronPulse Gym", None]:
+            updates_needed["gym_name"] = "Muscle Hunt"
         if "trainer_name" not in doc:
             updates_needed["trainer_name"] = "Coach"
         if "coach_phone" not in doc:

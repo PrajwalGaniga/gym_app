@@ -303,7 +303,7 @@ class PortalService:
                 if req.latitude is None or req.longitude is None:
                     raise HTTPException(
                         status_code=400,
-                        detail="GPS location is required to verify you are inside IronPulse Fitness. Please enable location permissions on your phone."
+                        detail="GPS location is required to verify you are inside Muscle Hunt. Please enable location permissions on your phone."
                     )
                 dist = calculate_distance_meters(req.latitude, req.longitude, gym_lat, gym_lon)
                 if dist > radius:
