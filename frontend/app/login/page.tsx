@@ -67,7 +67,11 @@ export default function LoginPage() {
     <div className={styles.loginWrapper}>
       <div className={styles.loginCard}>
         <div className={styles.brandHeader}>
-          <div className={styles.logoIcon}>🏋️</div>
+          <img
+            src="/assets/hero-full-dark.png"
+            alt="Muscle Hunt"
+            style={{ width: '80px', height: '80px', objectFit: 'cover', imageRendering: 'pixelated', borderRadius: '16px', border: '2.5px solid #38bdf8', marginBottom: '8px', boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)' }}
+          />
           <h1 className={styles.title}>Muscle Hunt</h1>
           <p className={styles.subtitle}>Coach & Management Portal</p>
         </div>

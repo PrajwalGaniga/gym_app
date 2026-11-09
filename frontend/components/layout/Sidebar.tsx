@@ -36,7 +36,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.sidebarBrand}>
-        <span className={styles.brandIcon}>🏋️</span>
+        <img
+          src="/assets/hero-full-dark.png"
+          alt="Muscle Hunt"
+          style={{ width: '36px', height: '36px', objectFit: 'cover', imageRendering: 'pixelated', borderRadius: '8px', border: '1.5px solid #38bdf8' }}
+        />
         <div>
           <div className={styles.brandTitle}>Muscle Hunt</div>
           <div className={styles.brandSub}>Coach Portal</div>
