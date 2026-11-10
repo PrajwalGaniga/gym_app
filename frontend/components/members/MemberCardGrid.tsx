@@ -11,6 +11,7 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Pagination } from '../ui/Pagination';
 import { EmptyState } from '../ui/EmptyState';
+import { Modal } from '../ui/Modal';
 import { MemberCardDetailModal } from './MemberCardDetailModal';
 
 interface MemberCardGridProps {
@@ -33,6 +34,30 @@ export const MemberCardGrid: React.FC<MemberCardGridProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteMember = async () => {
+    if (!memberToDelete) return;
+    try {
+      setIsDeleting(true);
+      await api.deleteMember(memberToDelete.id);
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.filter((m) => m.id !== memberToDelete.id),
+              total: Math.max(0, prev.total - 1),
+            }
+          : null
+      );
+      setMemberToDelete(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete member.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -71,6 +96,37 @@ export const MemberCardGrid: React.FC<MemberCardGridProps> = ({
         onClose={() => setSelectedMember(null)}
         onRenewed={() => fetchMembers()}
       />
+
+      {/* Delete Confirmation Modal */}
+      {memberToDelete && (
+        <Modal
+          isOpen={!!memberToDelete}
+          onClose={() => setMemberToDelete(null)}
+          title={`Delete Member: ${memberToDelete.full_name}`}
+        >
+          <div style={{ padding: '8px 0' }}>
+            <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: '12px', fontSize: '1rem' }}>
+              ⚠️ Warning: Permanent Data Deletion
+            </p>
+            <p style={{ color: '#334155', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '16px' }}>
+              Are you sure you want to delete <strong>{memberToDelete.full_name}</strong> (#{memberToDelete.member_code})?
+              All memberships, payment records, and attendance history will be permanently deleted from the database.
+            </p>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem', marginBottom: '24px' }}>
+              This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <Button variant="secondary" type="button" onClick={() => setMemberToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="danger" type="button" isLoading={isDeleting} onClick={handleDeleteMember}>
+                Confirm Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Header */}
       <div className={styles.header}>
@@ -291,7 +347,34 @@ export const MemberCardGrid: React.FC<MemberCardGridProps> = ({
                     <span className={styles.cardPlanName}>
                       {member.current_membership?.plan_name || 'No Plan'}
                     </span>
-                    <span className={styles.clickHint}>Click to open ↗</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={styles.clickHint}>Click to open ↗</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMemberToDelete(member);
+                        }}
+                        title="Delete member"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px 4px',
+                          fontSize: '0.875rem',
+                          color: '#94a3b8',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'color 0.15s',
+                        }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#ef4444')}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#94a3b8')}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -359,16 +442,29 @@ export const MemberCardGrid: React.FC<MemberCardGridProps> = ({
                       <Badge variant={badge.variant as any}>{badge.label}</Badge>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMember(member);
-                        }}
-                      >
-                        Open Card ↗
-                      </Button>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMember(member);
+                          }}
+                        >
+                          Open Card ↗
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemberToDelete(member);
+                          }}
+                          title="Delete member"
+                        >
+                          🗑️
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );

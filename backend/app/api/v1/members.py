@@ -138,3 +138,11 @@ async def get_member_attendance(
 ):
     return await attendance_service.get_member_attendance(member_id=member_id, page=page, page_size=page_size)
 
+@router.delete("/{member_id}", status_code=status.HTTP_200_OK)
+async def delete_member(member_id: str, admin: dict = Depends(get_current_admin)):
+    try:
+        return await member_service.delete_member(member_id, admin["id"])
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import styles from '@/components/members/members.module.css';
 import { api } from '@/lib/api';
 import { Member, Payment, Attendance, Plan, RenewalPreview } from '@/lib/types';
@@ -19,6 +19,7 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
   const resolvedParams = use(params);
   const memberId = resolvedParams.id;
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -27,6 +28,10 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
   const [activeTab, setActiveTab] = useState<'payments' | 'attendance'>('payments');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Delete Member State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Renewal Modal
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(searchParams.get('action') === 'renew');
@@ -193,6 +198,18 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleDeleteMember = async () => {
+    if (!member) return;
+    try {
+      setIsDeleting(true);
+      await api.deleteMember(member.id);
+      router.push('/members');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete member.');
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading member profile...</div>;
   }
@@ -275,6 +292,9 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
           </Button>
           <Button variant="primary" size="md" onClick={() => setIsRenewModalOpen(true)}>
             🔄 Renew Membership
+          </Button>
+          <Button variant="danger" size="md" onClick={() => setIsDeleteModalOpen(true)} title="Permanently delete member">
+            🗑️ Delete
           </Button>
         </div>
       </div>
@@ -626,6 +646,37 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
               </div>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && member && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title={`Delete Member: ${member.full_name}`}
+        >
+          <div style={{ padding: '8px 0' }}>
+            <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: '12px', fontSize: '1rem' }}>
+              ⚠️ Warning: Permanent Data Deletion
+            </p>
+            <p style={{ color: '#334155', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '16px' }}>
+              Are you sure you want to delete <strong>{member.full_name}</strong> (Member ID: <strong>{member.member_code}</strong>)?
+              This will permanently remove the member profile, active membership periods, payment history, and attendance records from the database.
+            </p>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem', marginBottom: '24px' }}>
+              This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <Button variant="secondary" type="button" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" type="button" isLoading={isDeleting} onClick={handleDeleteMember}>
+                Confirm Permanent Delete
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

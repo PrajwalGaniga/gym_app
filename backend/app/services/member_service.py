@@ -6,6 +6,7 @@ from app.repositories.payment_repo import payment_repo
 from app.repositories.plan_repo import plan_repo
 from app.repositories.settings_repo import settings_repo
 from app.repositories.audit_repo import audit_repo
+from app.db.mongo import db_manager
 from app.utils.dates import calculate_plan_expiry, get_gym_today, calculate_member_status
 from app.utils.phone import validate_phone
 from app.schemas.member import MemberCreate, LegacyMemberCreate, MemberUpdate, MemberResponse, PaginatedMembersResponse, MembershipSnapshot
@@ -373,5 +374,38 @@ class MemberService:
             page_size=page_size,
             total_pages=total_pages
         )
+
+    async def delete_member(self, member_id: str, admin_id: str) -> Dict[str, Any]:
+        member = await member_repo.get_by_id(member_id)
+        if not member:
+            raise ValueError(f"Member '{member_id}' not found.")
+
+        deleted = await member_repo.delete_member(member_id)
+        if not deleted:
+            raise ValueError(f"Failed to delete member '{member_id}'.")
+
+        # Cascading deletes for memberships, payments, attendance
+        db = db_manager.get_database()
+        await db.memberships.delete_many({"member_id": str(member_id)})
+        await db.payments.delete_many({"member_id": str(member_id)})
+        await db.attendance.delete_many({"member_id": str(member_id)})
+
+        # Log audit action
+        await audit_repo.log_action(
+            actor_admin_id=admin_id,
+            action="delete_member",
+            entity_type="members",
+            entity_id=member_id,
+            details={
+                "member_code": member.get("member_code"),
+                "full_name": member.get("full_name"),
+                "phone": member.get("phone")
+            }
+        )
+
+        return {
+            "message": f"Member '{member.get('full_name')}' (#{member.get('member_code')}) and all associated records deleted successfully.",
+            "id": member_id
+        }
 
 member_service = MemberService()

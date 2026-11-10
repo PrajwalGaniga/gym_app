@@ -3,12 +3,12 @@ import uuid
 import io
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
-from PIL import Image
+from PIL import Image, ImageOps
 from app.core.config import settings
 from app.core.logging import logger
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB max intake for high-res modern smartphone cameras
 
 class ImageService:
     def __init__(self):
@@ -22,10 +22,13 @@ class ImageService:
     def validate_and_process_image(self, file_bytes: bytes, filename: str) -> Tuple[bytes, bytes, str]:
         """
         Validates image content using PIL (magic bytes inspection).
+        Automatically corrects mobile camera orientation (EXIF transpose),
+        downscales high-res images to max 1000x1000, and compresses down
+        to lightweight, web-optimized JPEG format (~100-250 KB) to save storage.
         Returns (optimized_image_bytes, thumbnail_bytes, format_ext).
         """
         if len(file_bytes) > MAX_FILE_SIZE:
-            raise ValueError("Image file size exceeds maximum limit of 5 MB.")
+            raise ValueError("Image file size exceeds maximum limit of 25 MB.")
 
         try:
             img = Image.open(io.BytesIO(file_bytes))
@@ -39,27 +42,35 @@ class ImageService:
         if img_format not in ALLOWED_FORMATS:
             raise ValueError(f"Unsupported image format: {img_format}. Allowed formats: JPEG, PNG, WebP.")
 
-        # Convert RGBA to RGB for JPEG if needed
-        if img.mode in ("RGBA", "P") and img_format == "JPEG":
+        # Automatically orient photo according to EXIF tags (fixes phone camera sideways/inverted rotation)
+        try:
+            transposed = ImageOps.exif_transpose(img)
+            if transposed is not None:
+                img = transposed
+        except Exception:
+            pass
+
+        # Convert RGBA/P/other modes to RGB for consistent, high-efficiency JPEG compression
+        if img.mode != "RGB":
             img = img.convert("RGB")
 
-        # Save optimized main image
-        main_out = io.BytesIO()
-        save_format = "PNG" if img_format == "PNG" else "JPEG"
-        ext = "png" if img_format == "PNG" else "jpg"
+        # Downscale large original images to max 1000x1000 maintaining aspect ratio
+        if img.width > 1000 or img.height > 1000:
+            img.thumbnail((1000, 1000), Image.Resampling.LANCZOS)
 
-        # Resize large originals to max 1200x1200 maintaining aspect ratio
-        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
-        img.save(main_out, format=save_format, quality=85, optimize=True)
+        # Save optimized main image with high-efficiency JPEG compression (quality 82, optimize)
+        main_out = io.BytesIO()
+        img.save(main_out, format="JPEG", quality=82, optimize=True)
         main_bytes = main_out.getvalue()
 
         # Generate 150x150 thumbnail
         thumb_img = img.copy()
         thumb_img.thumbnail((150, 150), Image.Resampling.LANCZOS)
         thumb_out = io.BytesIO()
-        thumb_img.save(thumb_out, format=save_format, quality=80, optimize=True)
+        thumb_img.save(thumb_out, format="JPEG", quality=75, optimize=True)
         thumb_bytes = thumb_out.getvalue()
 
+        ext = "jpg"
         return main_bytes, thumb_bytes, ext
 
     async def save_profile_photo(self, file_bytes: bytes, original_filename: str) -> Dict[str, Any]:

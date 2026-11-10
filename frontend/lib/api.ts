@@ -180,6 +180,11 @@ export const api = {
       method: 'DELETE',
     }),
 
+  deleteMember: (id: string) =>
+    request<{ message: string; id: string }>(`/members/${id}`, {
+      method: 'DELETE',
+    }),
+
   getMemberPayments: (id: string, page = 1, pageSize = 20) =>
     request<PaginatedPayments>(`/members/${id}/payments?page=${page}&page_size=${pageSize}`),
 

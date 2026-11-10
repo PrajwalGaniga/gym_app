@@ -100,6 +100,13 @@ class MemberRepository:
         )
         return serialize_doc(res)
 
+    async def delete_member(self, member_id: str) -> bool:
+        oid = str_to_oid(member_id)
+        if not oid:
+            return False
+        res = await self.collection.delete_one({"_id": oid})
+        return res.deleted_count > 0
+
     async def update_photo(self, member_id: str, photo: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         oid = str_to_oid(member_id)
         if not oid:

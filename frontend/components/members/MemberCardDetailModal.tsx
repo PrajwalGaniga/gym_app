@@ -30,6 +30,18 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   const [renewMethod, setRenewMethod] = useState<'Cash' | 'UPI' | 'Card'>('Cash');
   const [renewalMessage, setRenewalMessage] = useState('');
 
+  // Delete state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Quick edit state
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+
   // Photo viewer and update states
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
@@ -42,6 +54,12 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   useEffect(() => {
     setCurrentMember(member);
     if (member) {
+      setEditFullName(member.full_name);
+      setEditPhone(member.phone);
+      setEditNotes(member.notes || '');
+      setShowDeleteConfirm(false);
+      setShowEditForm(false);
+      setEditError('');
       setIsLoadingPayments(true);
       setShowRenewalForm(false);
       setRenewalMessage('');
@@ -77,6 +95,51 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  // Delete member permanently
+  const handleDeleteMember = async () => {
+    if (!currentMember) return;
+    try {
+      setIsDeleting(true);
+      await api.deleteMember(currentMember.id);
+      onClose();
+      if (onRenewed) onRenewed();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete member.');
+      setIsDeleting(false);
+    }
+  };
+
+  // Quick edit member
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentMember) return;
+    try {
+      setIsSavingEdit(true);
+      setEditError('');
+      const updated = await api.updateMember(currentMember.id, {
+        full_name: editFullName.trim(),
+        phone: editPhone.trim(),
+        notes: editNotes.trim() || undefined,
+      });
+      setCurrentMember((prev) =>
+        prev
+          ? {
+              ...prev,
+              full_name: updated.full_name,
+              phone: updated.phone,
+              notes: updated.notes,
+            }
+          : null
+      );
+      setShowEditForm(false);
+      if (onRenewed) onRenewed();
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update member.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Photo Upload Handler (Camera capture or File select)
   const handleUploadPhoto = async (file: File) => {
@@ -206,6 +269,15 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
                 <button
                   type="button"
                   className={styles.heroActionPill}
+                  onClick={() => setShowEditForm(!showEditForm)}
+                  title="Edit member details"
+                >
+                  ✏️ Edit
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.heroActionPill}
                   onClick={() => setIsPhotoMenuOpen(true)}
                   title="Update profile picture"
                 >
@@ -287,6 +359,76 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
               <div style={{ background: '#ecfdf5', color: '#047857', padding: '10px 14px', borderRadius: '10px', fontSize: '0.8125rem', fontWeight: 600 }}>
                 {renewalMessage}
               </div>
+            )}
+
+            {/* Delete Confirmation Box */}
+            {showDeleteConfirm && (
+              <div className={styles.deleteConfirmBox}>
+                <div className={styles.deleteConfirmTitle}>⚠️ Delete Member Permanently?</div>
+                <div className={styles.deleteConfirmText}>
+                  Are you sure you want to permanently delete <strong>{displayMember.full_name}</strong> (#{displayMember.member_code})?
+                  All memberships, payments, and attendance records will be removed.
+                </div>
+                <div className={styles.deleteConfirmActions}>
+                  <Button variant="secondary" size="sm" type="button" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="danger" size="sm" type="button" isLoading={isDeleting} onClick={handleDeleteMember}>
+                    Confirm Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Edit Form */}
+            {showEditForm && (
+              <form onSubmit={handleSaveEdit} className={styles.editFormBox}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '0.9375rem', fontWeight: 700, color: '#1e293b' }}>
+                  ✏️ Edit Member Details
+                </h4>
+                {editError && (
+                  <div style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: '8px' }}>
+                    ⚠️ {editError}
+                  </div>
+                )}
+                <div className={styles.editFormRow}>
+                  <label className={styles.editFormLabel}>Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    className={styles.editFormInput}
+                  />
+                </div>
+                <div className={styles.editFormRow}>
+                  <label className={styles.editFormLabel}>Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className={styles.editFormInput}
+                  />
+                </div>
+                <div className={styles.editFormRow}>
+                  <label className={styles.editFormLabel}>Notes</label>
+                  <textarea
+                    rows={2}
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className={styles.editFormInput}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                  <Button variant="secondary" size="sm" type="button" onClick={() => setShowEditForm(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" type="submit" isLoading={isSavingEdit}>
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
             )}
 
             {/* 4 Metric Cards */}
@@ -476,14 +618,23 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
 
           {/* Modal Footer */}
           <div className={styles.modalFooter}>
-            <Link href={`/members/${displayMember.id}`}>
-              <Button variant="secondary" size="sm">
-                View Full Profile Page →
-              </Button>
-            </Link>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Close
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              🗑️ Delete Member
             </Button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link href={`/members/${displayMember.id}`}>
+                <Button variant="secondary" size="sm">
+                  View Full Profile Page →
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       </div>
