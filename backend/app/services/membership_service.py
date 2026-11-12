@@ -236,7 +236,7 @@ class MembershipService:
             entity_id=membership_id,
             before={"expiry_date": before_expiry},
             after={"expiry_date": str(data.new_expiry_date)},
-            reason=data.reason
+            reason=data.reason or "Coach manual date adjustment"
         )
 
         status, remaining = calculate_member_status(data.new_expiry_date, gym_today)

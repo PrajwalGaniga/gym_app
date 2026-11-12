@@ -205,10 +205,22 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  migrateExpiryDate: (memberId: string, data: { new_expiry_date: string; reason: string }) =>
+  migrateExpiryDate: (memberId: string, data: { new_expiry_date: string; reason?: string }) =>
     request<any>(`/memberships/${memberId}/migrate-expiry`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        new_expiry_date: data.new_expiry_date,
+        reason: data.reason || 'Coach manual date adjustment',
+      }),
+    }),
+
+  adjustExpiryDate: (memberId: string, newExpiryDate: string, reason?: string) =>
+    request<any>(`/memberships/${memberId}/migrate-expiry`, {
+      method: 'POST',
+      body: JSON.stringify({
+        new_expiry_date: newExpiryDate,
+        reason: reason || 'Coach manual date adjustment',
+      }),
     }),
 
   // Payments

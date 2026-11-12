@@ -42,6 +42,13 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
 
+  // Expiry adjustment state
+  const [showExpiryAdjust, setShowExpiryAdjust] = useState(false);
+  const [adjustDate, setAdjustDate] = useState('');
+  const [isSavingExpiry, setIsSavingExpiry] = useState(false);
+  const [expirySuccessMsg, setExpirySuccessMsg] = useState('');
+  const [expiryErrorMsg, setExpiryErrorMsg] = useState('');
+
   // Photo viewer and update states
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
@@ -60,6 +67,14 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
       setShowDeleteConfirm(false);
       setShowEditForm(false);
       setEditError('');
+      setShowExpiryAdjust(false);
+      setExpirySuccessMsg('');
+      setExpiryErrorMsg('');
+      if (member.current_membership?.expiry_date) {
+        setAdjustDate(member.current_membership.expiry_date);
+      } else {
+        setAdjustDate(new Date().toISOString().split('T')[0]);
+      }
       setIsLoadingPayments(true);
       setShowRenewalForm(false);
       setRenewalMessage('');
@@ -138,6 +153,38 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
       setEditError(err.message || 'Failed to update member.');
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  // 1-Click fast shift (+7d, +15d, +30d, -7d, etc.)
+  const handleShiftDays = (days: number) => {
+    const base = adjustDate ? new Date(adjustDate) : new Date();
+    if (isNaN(base.getTime())) return;
+    base.setDate(base.getDate() + days);
+    setAdjustDate(base.toISOString().split('T')[0]);
+  };
+
+  // Save adjusted expiry date without payment or mandatory reason
+  const handleSaveExpiry = async () => {
+    if (!currentMember || !adjustDate) return;
+    try {
+      setIsSavingExpiry(true);
+      setExpiryErrorMsg('');
+      await api.adjustExpiryDate(currentMember.id, adjustDate);
+
+      // Re-fetch the refreshed member details from API
+      const updatedMember = await api.getMemberDetail(currentMember.id);
+      setCurrentMember(updatedMember);
+
+      setExpirySuccessMsg(`✅ Expiry date updated to ${formatDate(adjustDate)}!`);
+      setShowExpiryAdjust(false);
+      setTimeout(() => setExpirySuccessMsg(''), 4000);
+
+      if (onRenewed) onRenewed();
+    } catch (err: any) {
+      setExpiryErrorMsg(err.message || 'Failed to update expiry date.');
+    } finally {
+      setIsSavingExpiry(false);
     }
   };
 
@@ -488,17 +535,180 @@ export const MemberCardDetailModal: React.FC<MemberCardDetailModalProps> = ({
                     : `🔴 Expired ${Math.abs(displayMember.remaining_days)}d ago`}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: '#475569' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: '#475569', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <strong>Plan:</strong> {displayMember.current_membership?.plan_name || 'No Active Plan'}
                 </div>
-                <div>
-                  <strong>Valid Till:</strong>{' '}
-                  {displayMember.current_membership?.expiry_date
-                    ? formatDate(displayMember.current_membership.expiry_date)
-                    : '—'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div>
+                    <strong>Valid Till:</strong>{' '}
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                      {displayMember.current_membership?.expiry_date
+                        ? formatDate(displayMember.current_membership.expiry_date)
+                        : '—'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!showExpiryAdjust && displayMember.current_membership?.expiry_date) {
+                        setAdjustDate(displayMember.current_membership.expiry_date);
+                      }
+                      setShowExpiryAdjust(!showExpiryAdjust);
+                    }}
+                    style={{
+                      background: showExpiryAdjust ? '#eff6ff' : '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Change or postpone expiry date without payment"
+                  >
+                    <span>📅</span>
+                    <span>{showExpiryAdjust ? 'Close' : 'Change Date'}</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Status alerts for date adjust */}
+              {expirySuccessMsg && (
+                <div style={{ background: '#ecfdf5', color: '#047857', padding: '8px 12px', borderRadius: '8px', fontSize: '0.8125rem', fontWeight: 600, marginTop: '10px' }}>
+                  {expirySuccessMsg}
+                </div>
+              )}
+              {expiryErrorMsg && (
+                <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '8px 12px', borderRadius: '8px', fontSize: '0.8125rem', fontWeight: 600, marginTop: '10px' }}>
+                  ⚠️ {expiryErrorMsg}
+                </div>
+              )}
+
+              {/* Inline Expiry Date Adjustment Drawer */}
+              {showExpiryAdjust && (
+                <div className={styles.expiryAdjustBox}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e3a8a' }}>
+                      📅 Postpone or Prepone Expiry Date
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      No reason needed
+                    </span>
+                  </div>
+
+                  {/* Date Input */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', minWidth: '70px' }}>
+                      New Date:
+                    </label>
+                    <input
+                      type="date"
+                      value={adjustDate}
+                      onChange={(e) => setAdjustDate(e.target.value)}
+                      style={{
+                        padding: '7px 12px',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        backgroundColor: '#ffffff',
+                        flex: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* 1-Click Quick Shifts */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                      ⚡ 1-Click Fast Adjustments:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, marginRight: '2px' }}>
+                        Postpone:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(7)}
+                        className={styles.expiryChip}
+                        title="Postpone expiry by 7 days"
+                      >
+                        +7 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(15)}
+                        className={styles.expiryChip}
+                        title="Postpone expiry by 15 days"
+                      >
+                        +15 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(30)}
+                        className={styles.expiryChip}
+                        title="Postpone expiry by 1 month"
+                      >
+                        +1 Month
+                      </button>
+
+                      <span style={{ fontSize: '0.75rem', color: '#ea580c', fontWeight: 700, marginLeft: '6px', marginRight: '2px' }}>
+                        Prepone:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(-7)}
+                        className={styles.expiryChip}
+                        title="Prepone expiry by 7 days"
+                      >
+                        -7 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(-15)}
+                        className={styles.expiryChip}
+                        title="Prepone expiry by 15 days"
+                      >
+                        -15 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftDays(-30)}
+                        className={styles.expiryChip}
+                        title="Prepone expiry by 1 month"
+                      >
+                        -1 Month
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      type="button"
+                      onClick={() => setShowExpiryAdjust(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      type="button"
+                      isLoading={isSavingExpiry}
+                      onClick={handleSaveExpiry}
+                    >
+                      ✓ Save New Expiry
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Vibrant Gradient Renew Button */}

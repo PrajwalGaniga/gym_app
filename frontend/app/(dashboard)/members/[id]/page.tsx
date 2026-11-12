@@ -129,10 +129,17 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleShiftMigrateDays = (days: number) => {
+    const base = newMigratedExpiry ? new Date(newMigratedExpiry) : new Date();
+    if (isNaN(base.getTime())) return;
+    base.setDate(base.getDate() + days);
+    setNewMigratedExpiry(base.toISOString().split('T')[0]);
+  };
+
   const handleExecuteMigration = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!member || !newMigratedExpiry || !migrationReason.trim()) {
-      alert('Please select an expiry date and provide an audit reason.');
+    if (!member || !newMigratedExpiry) {
+      alert('Please select a new expiry date.');
       return;
     }
 
@@ -140,12 +147,12 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
       setIsMigrating(true);
       await api.migrateExpiryDate(member.id, {
         new_expiry_date: newMigratedExpiry,
-        reason: migrationReason.trim(),
+        reason: migrationReason.trim() || 'Coach manual date adjustment',
       });
       setIsMigrateModalOpen(false);
       fetchMemberData();
     } catch (err: any) {
-      alert(err.message || 'Migration failed.');
+      alert(err.message || 'Date adjustment failed.');
     } finally {
       setIsMigrating(false);
     }
@@ -287,8 +294,13 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
           <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
             ✏️ Edit Profile
           </Button>
-          <Button variant="secondary" onClick={() => setIsMigrateModalOpen(true)} title="Adjust legacy expiry without payment">
-            ⚙️ Migrate Expiry
+          <Button variant="secondary" onClick={() => {
+            if (member.current_membership?.expiry_date) {
+              setNewMigratedExpiry(member.current_membership.expiry_date);
+            }
+            setIsMigrateModalOpen(true);
+          }} title="Postpone or prepone expiry date without payment">
+            📅 Change Expiry Date
           </Button>
           <Button variant="primary" size="md" onClick={() => setIsRenewModalOpen(true)}>
             🔄 Renew Membership
@@ -535,12 +547,11 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
         <Modal
           isOpen={true}
           onClose={() => setIsMigrateModalOpen(false)}
-          title={`Manual Expiry Migration — ${member.full_name}`}
+          title={`Adjust Expiry Date — ${member.full_name}`}
         >
           <form onSubmit={handleExecuteMigration}>
             <div className={styles.noticeBox} style={{ marginBottom: '14px' }}>
-              ℹ️ <strong>Audited Action:</strong> Manually adjusting an expiry date updates membership validity without
-              creating a fake payment record or distorting revenue statistics.
+              📅 <strong>Postpone or Prepone Expiry:</strong> Correct a mistakenly entered expiry date or grant an extension without creating a payment record.
             </div>
 
             <Input
@@ -551,12 +562,69 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
               onChange={(e) => setNewMigratedExpiry(e.target.value)}
             />
 
+            {/* 1-Click Quick Shifts */}
+            <div style={{ margin: '12px 0 16px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                ⚡ 1-Click Fast Adjustments:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, marginRight: '2px' }}>
+                  Postpone:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(7)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  +7 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(15)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  +15 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(30)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  +1 Month
+                </button>
+
+                <span style={{ fontSize: '0.75rem', color: '#ea580c', fontWeight: 700, marginLeft: '6px', marginRight: '2px' }}>
+                  Prepone:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(-7)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  -7 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(-15)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  -15 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMigrateDays(-30)}
+                  style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                >
+                  -1 Month
+                </button>
+              </div>
+            </div>
+
             <Input
-              label="Audit Reason (Mandatory)"
-              required
+              label="Notes / Reason (Optional)"
               value={migrationReason}
               onChange={(e) => setMigrationReason(e.target.value)}
-              placeholder="e.g. Migrated from offline punch card; medical leave extension granted"
+              placeholder="Optional: e.g. Coach date correction, medical leave extension"
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
@@ -564,7 +632,7 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
                 Cancel
               </Button>
               <Button variant="primary" type="submit" isLoading={isMigrating}>
-                Save Expiry Migration
+                ✓ Save New Expiry
               </Button>
             </div>
           </form>
