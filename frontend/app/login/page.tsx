@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, getApiBaseUrl } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
@@ -21,6 +21,44 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Diagnostic & Debug State
+  const [debugInfo, setDebugInfo] = useState<{
+    urlCalled?: string;
+    status?: number | string;
+    errorText?: string;
+    time?: string;
+  } | null>(null);
+  const [pingStatus, setPingStatus] = useState<string>('');
+  const [isPinging, setIsPinging] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const testPing = async () => {
+    setIsPinging(true);
+    setPingStatus('Testing connection...');
+    const baseUrl = getApiBaseUrl();
+    const pingUrl = `${baseUrl}/ping`;
+    try {
+      const t0 = Date.now();
+      const res = await fetch(pingUrl, { method: 'GET' });
+      const elapsed = Date.now() - t0;
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setPingStatus(`✅ Connected! HTTP ${res.status} (${elapsed}ms) - ${JSON.stringify(data)}`);
+      } else {
+        setPingStatus(`⚠️ Reachable but returned HTTP ${res.status} at ${pingUrl}`);
+      }
+    } catch (e: any) {
+      setPingStatus(`❌ Connection failed: ${e.message}. Backend is sleeping, starting up, or blocked by CORS.`);
+    } finally {
+      setIsPinging(false);
+    }
+  };
+
+  useEffect(() => {
+    // Auto-ping on mount to detect backend readiness
+    testPing();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +91,23 @@ export default function LoginPage() {
 
       router.push('/dashboard');
     } catch (err: any) {
+      const baseUrl = getApiBaseUrl();
+      const calledUrl = err instanceof ApiError && err.url ? err.url : `${baseUrl}/auth/login`;
+      const status = err instanceof ApiError ? err.status : 'Network / CORS Failure';
+      const detail = err instanceof ApiError ? err.message : (err.message || 'Failed to fetch (Backend offline or waking up)');
+
+      setDebugInfo({
+        urlCalled: calledUrl,
+        status: status,
+        errorText: detail,
+        time: new Date().toLocaleTimeString(),
+      });
+      setShowDebug(true);
+
       if (err instanceof ApiError) {
-        setErrorMessage(err.message);
+        setErrorMessage(`[HTTP ${err.status}] ${err.message}`);
       } else {
-        setErrorMessage('Failed to connect to the backend server. Please verify backend is running.');
+        setErrorMessage(`Failed to connect to backend server: ${err.message || 'Network error'}`);
       }
     } finally {
       setIsLoading(false);
@@ -159,6 +210,65 @@ export default function LoginPage() {
           <div style={{ marginTop: '4px', fontSize: '0.72rem', color: '#94a3b8' }}>
             Permanent fallback login for emergency gym access.
           </div>
+        </div>
+
+        {/* Live Diagnostics & Debugger */}
+        <div style={{
+          marginTop: '20px',
+          padding: '12px 14px',
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1px solid #334155',
+          borderRadius: '10px',
+          fontSize: '0.78rem',
+          color: '#cbd5e1',
+          textAlign: 'left'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontWeight: 600, color: '#38bdf8' }}>🛠️ Live Connection Diagnostics</span>
+            <button
+              type="button"
+              onClick={testPing}
+              disabled={isPinging}
+              style={{
+                background: '#0284c7',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontSize: '0.72rem',
+                cursor: isPinging ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isPinging ? 'Testing...' : 'Test Backend Ping'}
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '4px', wordBreak: 'break-all' }}>
+            <strong style={{ color: '#94a3b8' }}>Target Backend: </strong>
+            <span style={{ color: '#a5f3fc' }}>{getApiBaseUrl()}</span>
+          </div>
+
+          <div style={{ marginBottom: '4px', wordBreak: 'break-all' }}>
+            <strong style={{ color: '#94a3b8' }}>Ping Status: </strong>
+            <span>{pingStatus || 'Not tested yet'}</span>
+          </div>
+
+          {debugInfo && (
+            <div style={{
+              marginTop: '8px',
+              padding: '8px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '6px'
+            }}>
+              <div style={{ color: '#f87171', fontWeight: 600, marginBottom: '4px' }}>
+                Latest Login Error ({debugInfo.time}):
+              </div>
+              <div style={{ wordBreak: 'break-all' }}><strong>Status:</strong> {debugInfo.status}</div>
+              <div style={{ wordBreak: 'break-all' }}><strong>URL:</strong> {debugInfo.urlCalled}</div>
+              <div style={{ wordBreak: 'break-all' }}><strong>Detail:</strong> {debugInfo.errorText}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>

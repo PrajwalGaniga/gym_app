@@ -17,14 +17,20 @@ import {
 } from './types';
 
 export const getApiBaseUrl = (): string => {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
+  let base = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  if (!base) {
+    // When running in the browser in production (e.g. on sinan-gym.vercel.app), default to live Render backend
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      base = 'https://gym-app-v2-yl09.onrender.com/api/v1';
+    } else {
+      base = 'http://localhost:8000/api/v1';
+    }
   }
-  // When running in the browser in production (e.g. on sinan-gym.vercel.app), default to live Render backend
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://gym-app-tdsj.onrender.com/api/v1';
+  base = base.trim().replace(/\/+$/, '');
+  if (!base.endsWith('/api/v1')) {
+    base = `${base}/api/v1`;
   }
-  return 'http://localhost:8000/api/v1';
+  return base;
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -32,12 +38,14 @@ const API_BASE_URL = getApiBaseUrl();
 export class ApiError extends Error {
   status: number;
   data: any;
+  url?: string;
 
-  constructor(message: string, status: number, data?: any) {
+  constructor(message: string, status: number, data?: any, url?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.data = data;
+    this.url = url;
   }
 }
 
@@ -79,7 +87,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     } catch {
       // not JSON
     }
-    throw new ApiError(errorMessage, response.status, errorData);
+    throw new ApiError(errorMessage, response.status, errorData, url);
   }
 
   if (response.status === 204) {
