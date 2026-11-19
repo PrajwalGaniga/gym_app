@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
-import { api, ApiError, getApiBaseUrl } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+
+const TOTAL_WAKEUP_SECONDS = 90;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,43 +24,106 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Diagnostic & Debug State
-  const [debugInfo, setDebugInfo] = useState<{
-    urlCalled?: string;
-    status?: number | string;
-    errorText?: string;
-    time?: string;
-  } | null>(null);
-  const [pingStatus, setPingStatus] = useState<string>('');
-  const [isPinging, setIsPinging] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
+  // Friendly Server Wake-up Modal State
+  const [isWakingUp, setIsWakingUp] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(TOTAL_WAKEUP_SECONDS);
+  const [wakeUpStatus, setWakeUpStatus] = useState('Connecting to cloud server...');
+  const [isSuccessRedirecting, setIsSuccessRedirecting] = useState(false);
 
-  const testPing = async () => {
-    setIsPinging(true);
-    setPingStatus('Testing connection...');
-    const baseUrl = getApiBaseUrl();
-    const pingUrl = `${baseUrl}/ping`;
+  const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wakeUpTriggerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRetryingRef = useRef(false);
+  const isCancelledRef = useRef(false);
+
+  // Clear timers on unmount
+  useEffect(() => {
+    return () => {
+      clearAllTimers();
+    };
+  }, []);
+
+  const clearAllTimers = () => {
+    if (retryIntervalRef.current) clearInterval(retryIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (wakeUpTriggerTimerRef.current) clearTimeout(wakeUpTriggerTimerRef.current);
+  };
+
+  const cancelWakeUp = () => {
+    isCancelledRef.current = true;
+    clearAllTimers();
+    setIsWakingUp(false);
+    setIsLoading(false);
+    setErrorMessage('Login cancelled. You can try again whenever you are ready.');
+  };
+
+  // Helper to attempt login
+  const tryLogin = async (creds: { phone?: string; pin?: string; username?: string; password?: string }): Promise<'success' | 'auth_error' | 'wake_up_error'> => {
     try {
-      const t0 = Date.now();
-      const res = await fetch(pingUrl, { method: 'GET' });
-      const elapsed = Date.now() - t0;
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setPingStatus(`✅ Connected! HTTP ${res.status} (${elapsed}ms) - ${JSON.stringify(data)}`);
-      } else {
-        setPingStatus(`⚠️ Reachable but returned HTTP ${res.status} at ${pingUrl}`);
+      await api.login(creds);
+      return 'success';
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 400 || err.status === 401)) {
+        setErrorMessage(err.message || 'Invalid phone number or 4-digit PIN.');
+        return 'auth_error';
       }
-    } catch (e: any) {
-      setPingStatus(`❌ Connection failed: ${e.message}. Backend is sleeping, starting up, or blocked by CORS.`);
-    } finally {
-      setIsPinging(false);
+      // Any network error, timeout, 502, 503, or 504 -> backend is cold starting
+      return 'wake_up_error';
     }
   };
 
-  useEffect(() => {
-    // Auto-ping on mount to detect backend readiness
-    testPing();
-  }, []);
+  const startWakeUpProcess = (creds: { phone?: string; pin?: string; username?: string; password?: string }) => {
+    isCancelledRef.current = false;
+    setIsWakingUp(true);
+    setSecondsLeft(TOTAL_WAKEUP_SECONDS);
+    setWakeUpStatus('Waking up server from power-saving mode...');
+
+    clearAllTimers();
+
+    // 1. Countdown tick every 1s
+    countdownIntervalRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setWakeUpStatus('Almost ready, finalizing connection...');
+          return 0;
+        }
+        const updated = prev - 1;
+        if (updated > 60) {
+          setWakeUpStatus('Waking up cloud server...');
+        } else if (updated > 30) {
+          setWakeUpStatus('Starting backend services and database...');
+        } else if (updated > 5) {
+          setWakeUpStatus('Connecting to server, almost ready...');
+        }
+        return updated;
+      });
+    }, 1000);
+
+    // 2. Poll login automatically every 3.5s
+    retryIntervalRef.current = setInterval(async () => {
+      if (isRetryingRef.current || isCancelledRef.current) return;
+      isRetryingRef.current = true;
+
+      const result = await tryLogin(creds);
+      if (isCancelledRef.current) return;
+
+      if (result === 'success') {
+        clearAllTimers();
+        setIsSuccessRedirecting(true);
+        setWakeUpStatus('✅ Server online! Taking you to dashboard...');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 700);
+      } else if (result === 'auth_error') {
+        clearAllTimers();
+        setIsWakingUp(false);
+        setIsLoading(false);
+      } else {
+        // Still waking up, continue retrying
+        isRetryingRef.current = false;
+      }
+    }, 3500);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,40 +144,62 @@ export default function LoginPage() {
       }
     }
 
-    try {
-      setIsLoading(true);
-      setErrorMessage('');
+    const creds = loginMode === 'pin'
+      ? { phone: phone.trim(), pin: pin.trim() }
+      : { username: username.trim(), password };
 
-      if (loginMode === 'pin') {
-        await api.login({ phone: phone.trim(), pin: pin.trim() });
+    setIsLoading(true);
+    setErrorMessage('');
+    isCancelledRef.current = false;
+
+    // If server takes longer than 2.2s to respond, show the friendly waking-up popup
+    wakeUpTriggerTimerRef.current = setTimeout(() => {
+      startWakeUpProcess(creds);
+    }, 2200);
+
+    const initialResult = await tryLogin(creds);
+    if (wakeUpTriggerTimerRef.current) {
+      clearTimeout(wakeUpTriggerTimerRef.current);
+    }
+
+    if (isCancelledRef.current) return;
+
+    if (initialResult === 'success') {
+      clearAllTimers();
+      if (isWakingUp) {
+        setIsSuccessRedirecting(true);
+        setWakeUpStatus('✅ Server online! Taking you to dashboard...');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 500);
       } else {
-        await api.login({ username: username.trim(), password });
+        router.push('/dashboard');
       }
-
-      router.push('/dashboard');
-    } catch (err: any) {
-      const baseUrl = getApiBaseUrl();
-      const calledUrl = err instanceof ApiError && err.url ? err.url : `${baseUrl}/auth/login`;
-      const status = err instanceof ApiError ? err.status : 'Network / CORS Failure';
-      const detail = err instanceof ApiError ? err.message : (err.message || 'Failed to fetch (Backend offline or waking up)');
-
-      setDebugInfo({
-        urlCalled: calledUrl,
-        status: status,
-        errorText: detail,
-        time: new Date().toLocaleTimeString(),
-      });
-      setShowDebug(true);
-
-      if (err instanceof ApiError) {
-        setErrorMessage(`[HTTP ${err.status}] ${err.message}`);
-      } else {
-        setErrorMessage(`Failed to connect to backend server: ${err.message || 'Network error'}`);
-      }
-    } finally {
+    } else if (initialResult === 'auth_error') {
+      clearAllTimers();
+      setIsWakingUp(false);
       setIsLoading(false);
+    } else {
+      // Immediate network/502 error -> trigger wake-up popup
+      if (!isWakingUp) {
+        startWakeUpProcess(creds);
+      }
     }
   };
+
+  const formatTimer = (seconds: number) => {
+    if (seconds >= 60) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+    }
+    return `${seconds}s`;
+  };
+
+  const progressPercent = Math.min(
+    100,
+    Math.max(5, Math.round(((TOTAL_WAKEUP_SECONDS - secondsLeft) / TOTAL_WAKEUP_SECONDS) * 100))
+  );
 
   return (
     <div className={styles.loginWrapper}>
@@ -211,66 +298,55 @@ export default function LoginPage() {
             Permanent fallback login for emergency gym access.
           </div>
         </div>
-
-        {/* Live Diagnostics & Debugger */}
-        <div style={{
-          marginTop: '20px',
-          padding: '12px 14px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid #334155',
-          borderRadius: '10px',
-          fontSize: '0.78rem',
-          color: '#cbd5e1',
-          textAlign: 'left'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontWeight: 600, color: '#38bdf8' }}>🛠️ Live Connection Diagnostics</span>
-            <button
-              type="button"
-              onClick={testPing}
-              disabled={isPinging}
-              style={{
-                background: '#0284c7',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '3px 8px',
-                fontSize: '0.72rem',
-                cursor: isPinging ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {isPinging ? 'Testing...' : 'Test Backend Ping'}
-            </button>
-          </div>
-
-          <div style={{ marginBottom: '4px', wordBreak: 'break-all' }}>
-            <strong style={{ color: '#94a3b8' }}>Target Backend: </strong>
-            <span style={{ color: '#a5f3fc' }}>{getApiBaseUrl()}</span>
-          </div>
-
-          <div style={{ marginBottom: '4px', wordBreak: 'break-all' }}>
-            <strong style={{ color: '#94a3b8' }}>Ping Status: </strong>
-            <span>{pingStatus || 'Not tested yet'}</span>
-          </div>
-
-          {debugInfo && (
-            <div style={{
-              marginTop: '8px',
-              padding: '8px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '6px'
-            }}>
-              <div style={{ color: '#f87171', fontWeight: 600, marginBottom: '4px' }}>
-                Latest Login Error ({debugInfo.time}):
-              </div>
-              <div style={{ wordBreak: 'break-all' }}><strong>Status:</strong> {debugInfo.status}</div>
-              <div style={{ wordBreak: 'break-all' }}><strong>URL:</strong> {debugInfo.urlCalled}</div>
-              <div style={{ wordBreak: 'break-all' }}><strong>Detail:</strong> {debugInfo.errorText}</div>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* Friendly Server Wake-Up Modal */}
+      {isWakingUp && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <div className={styles.modalIconWrapper}>
+              {isSuccessRedirecting ? '🚀' : '⚡'}
+            </div>
+
+            <h2 className={styles.modalTitle}>
+              {isSuccessRedirecting ? 'Welcome Back!' : 'Starting up Gym Portal...'}
+            </h2>
+
+            <p className={styles.modalDesc}>
+              {isSuccessRedirecting
+                ? 'Connecting your account now...'
+                : 'Our secure cloud server was resting to save power. It is waking up now and will be ready shortly.'}
+            </p>
+
+            <div className={styles.timerContainer}>
+              <div className={styles.timerLabel}>Estimated Wait Time</div>
+              <div className={styles.timerValue}>{formatTimer(secondsLeft)}</div>
+
+              <div className={styles.progressBarTrack}>
+                <div
+                  className={styles.progressBarFill}
+                  style={{ width: `${isSuccessRedirecting ? 100 : progressPercent}%` }}
+                />
+              </div>
+
+              <div className={styles.statusMessage}>
+                <span>{wakeUpStatus}</span>
+              </div>
+            </div>
+
+            <div className={styles.autoNotice}>
+              <span>✨</span>
+              <span>No need to click anything — you will be logged in automatically!</span>
+            </div>
+
+            {!isSuccessRedirecting && (
+              <button type="button" onClick={cancelWakeUp} className={styles.cancelBtn}>
+                Cancel & Return to Login
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
